@@ -10,7 +10,9 @@ use dep::bignum::runtime_bignum::BigNumParamsTrait;
  *          Once numeric generics can be derived by applying operations to other numeric generics the need for this will go away.
  *
  * @note We assume the public key exponent `e` is 65537 
- * Rough cost: 26,888 gates per verification. A circuit that verifies 1 signature (and does nothing else) will cost ~32k due to initialization costs of lookup tables
+ * Rough cost: 2,048 bit RSA: 26,888 gates per verification
+ *             1,024 bit RSA: 11,983 gates per verification
+ * A circuit that verifies 1 signature (and does nothing else) will cost ~32k due to initialization costs of lookup tables
  **/
 pub fn verify_sha256_pkcs1v15<let N: u64, Params, let NBytes: u64>(
     BNInstance: BigNumInstance<N, Params>,
@@ -121,7 +123,6 @@ fn test_verify_sha256_pkcs1v15_1024() {
 #[test]
 fn test_verify_sha256_pkcs1v15_2048() {
     let sha256_hash: [u8; 32] = dep::std::hash::sha256("hello world".as_bytes());
-
     let BNInstance: BigNumInstance<18, Params2048> = BigNumInstance::new(
         [
         0x183b4cadacea64716b6535b25a86ad, 0x129a32e9fbd374949e81b080546c2b, 0x9276332765f54b9b4d6fe23f4983a4, 0x91df05fde1a414c9fbf38808a01032, 0x97ca171c382e082ddd6c81be090902, 0x97161dde47ed979939451704b72648, 0x3b66f0c93f8ddbc62bb99f6b8fad2d, 0xc3a046fcad814d8938da372cd84d2a, 0xfe903cfe3ee4de6de3916023bb87f2, 0x8be5fd99c8b46dce9aab27ce4b3883, 0x0d99dfe50dd2288123804872da8543, 0xbb6d8afef8b2c7e3b86ad96973d4e5, 0x17e08fa3c5391279b844581f67825c, 0x09511f4a436abe495bfbfcc254d9c5, 0xf80d02572d620eab5ad7ecfbe2c20c, 0x2a5307402a05f59ba232ad0c8366d0, 0x7b9169630b317c38d549a86f85fcfc, 0xf2
