@@ -1,0 +1,8 @@
+[package]
+name = "noir_rsa"
+type = "bin"
+authors = [""]
+compiler_version = ">=0.31.0"
+
+[dependencies]
+bignum = { path = "../noir-bignum" }
