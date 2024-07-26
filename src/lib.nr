@@ -1,4 +1,4 @@
-use dep::bignum::runtime_bignum::BigNum;
+use dep::bignum::BigNum;
 use dep::bignum::runtime_bignum::BigNumInstance;
 use dep::bignum::runtime_bignum::BigNumTrait;
 use dep::bignum::runtime_bignum::BigNumParamsTrait;
@@ -17,7 +17,7 @@ use dep::bignum::runtime_bignum::BigNumParamsTrait;
 pub fn verify_sha256_pkcs1v15<let N: u64, Params, let NBytes: u64>(
     BNInstance: BigNumInstance<N, Params>,
     msg_hash: [u8; 32],
-    sig: BigNum<N>,
+    sig: BigNum<N, Params>,
     _: [u8; NBytes]
 ) -> bool where Params: BigNumParamsTrait<N> {
     // e = 65537 = 1 0000 0000 0000 0001
@@ -39,7 +39,7 @@ pub fn verify_sha256_pkcs1v15<let N: u64, Params, let NBytes: u64>(
     exponentiated = BNInstance.mul(exponentiated, exponentiated);
     exponentiated = BNInstance.mul(exponentiated, sig);
 
-    let mut padded_sha256_hash_bytes: [u8; NBytes] = BNInstance.to_le_bytes(exponentiated);
+    let mut padded_sha256_hash_bytes: [u8; NBytes] = exponentiated.to_le_bytes();
     compare_signature_sha256(padded_sha256_hash_bytes, msg_hash)
 }
 
@@ -111,7 +111,7 @@ fn test_verify_sha256_pkcs1v15_1024() {
         0x55582e8ba08822783fbd7d07390be2, 0x1d7d83f9dce3983c66f440dcc2f33e, 0x6072d13c84a4cb304f58fbabe782e7, 0x0cee5e0dd62bc54d15a91a4ea3bc50, 0xc485e6f946c45cf660fba4f49325cb, 0x1f0e45df0464b065c94e84ed1dad8c, 0xe4c7b3976310ea239059d834b545f3, 0xd418145200fa77235f5f8d852b121f, 0x01acf0bd16cad9bd8f
     ]
     );
-    let signature = BNInstance.from_array(
+    let signature = BigNum::from_array(
         [
         0x393f230b55a12fb7bb39c7edd2cf48, 0x78f7d0a217d340407cae4f39b8f001, 0x603909ff76a519f3c8e96d695d462e, 0x0640ab230b459bf4b20b4823a5b850, 0x02ba190de61a85074b18e228231984, 0xe1424c0779825707aa433ecb86c388, 0xbed8087d947a9c6c56625ad20c91aa, 0x7da4a0c2eee3a3c0d61e892ab4ada9, 0x6ef98a936c8bf8e5
     ]
@@ -131,7 +131,7 @@ fn test_verify_sha256_pkcs1v15_2048() {
         0xf4effa025abe90db41dc5bb5934a5f, 0x2596b25aa09f6a0e290accebbef006, 0x330e9567ec5eca92b7a8ce72ad3d83, 0xccf98d178ec4017e4947cadc02da7c, 0xaed6044ffeeb12de4d1e67aedfda78, 0xb5ae8a5a4637b632800e2f41dfbf0a, 0x8304360d359cf2f0d5d97c039f9b04, 0x53cde0d0633c0e66e1da9a118f6a96, 0xf9a83822351097bb1ed123d10290f5, 0xeb489c7f7227c09ca0117264dcf04f, 0x6a1b3618478a235f438adf84533177, 0x71c03085e38a87f5ec8e51c27dde98, 0xcf3e89d9cf253ef61d65d4431334d9, 0xa5a1a59e98fb7f49c746149324201d, 0x38f46c635f884f24c254eaa37981d6, 0x1c42be15dd95e1ac5bf01972b24ff9, 0x4555dd506d1f89e61279293c03db90, 0x010e
     ]
     );
-    let signature = BNInstance.from_array(
+    let signature = BigNum::from_array(
         [
         0x5f0937ed1aacbdb83991e21c89ca8a, 0x5a1fa4ef2faf4042401c9121c73874, 0x7379fbb7713fbf807d250f7401afb8, 0x9cc5ce8813f3a83a72b681a4d434b2, 0x11cb49ac2ee1f9bed8a008b8327e1e, 0xf3362524f1224e48827b34a62f6ace, 0x3498a2944e32a3798fe9da684b32ae, 0xc346c33528bcdf7a06805126a29402, 0x6ac93f2fa68f270ec73674eae24380, 0x222c72de080496533ceeb8af827910, 0xc22889b311a53203278b942ca67100, 0x93d75567f7fe9ee7ca9871a0cb09f9, 0x049dabd976a9574847b1614f6b739c, 0xdc66b621dbae623df9b657b52fa1b0, 0xf37e82cc1eced382e11fc32e673f67, 0xe50545eb9027f1144a0ba7bbb0c886, 0xb6193409539c515d3c55a45c5734b1, 0x4b
     ]
