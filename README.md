@@ -4,7 +4,7 @@ Optimized Noir library that evaluates RSA signatures.
 
 Uses https://github.com/zac-williamson/noir-bignum as a dependency.
 
-NOTE: library is experimental and currently will only compile using the nightly build of noir (as of 15 July 2024)
+NOTE: library requires noir v 0.32.0 or later. If using the barretenberg backend, bb version of at least 0.46.1 is required (`bbup -v 0.46.1 `)
 
 # Usage
 
