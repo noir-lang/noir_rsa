@@ -29,14 +29,15 @@ See tests in `lib.nr` for additional examples. The `pubkey_redc_param` parameter
     type RSA2048 = RSA<BN2048, BNInstance, 256>;
 
     fn verify_signature(pubkey: [u8; 256], signature: [u8; 256], pubkey_redc_param: BN2048)
-    let sha256_hash: [u8; 32] = dep::std::hash::sha256("hello world".as_bytes());
-    let modulus: BN2048 = BigNum::from_byte_be(pubkey);
-    let signature: BN2048 = BigNum::from_byte_be(signature);
+        let sha256_hash: [u8; 32] = dep::std::hash::sha256("hello world".as_bytes());
+        let modulus: BN2048 = BigNum::from_byte_be(pubkey);
+        let signature: BN2048 = BigNum::from_byte_be(signature);
 
-    let instance: BNInstance = BigNumInstance::new(modulus, pubkey_redc_param);
+        let instance: BNInstance = BigNumInstance::new(modulus, pubkey_redc_param);
 
-    let rsa: RSA2048 = RSA {};
-    assert(rsa.verify_sha256_pkcs1v15(BNInstance, sha256_hash, signature));
+        let rsa: RSA2048 = RSA {};
+        assert(rsa.verify_sha256_pkcs1v15(BNInstance, sha256_hash, signature));
+    }
 ```
 
 # Costs
