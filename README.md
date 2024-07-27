@@ -12,7 +12,7 @@ See tests in `lib.nr` for examples.
 
 To construct a `BigNumInstance` objects, both the bignum modulus (the public key) and a Barrett reduction parameter are required as arrays of Field elements, with each element representing a 120-bit slice of the number.
 
-See `signature_gen/src/main.rs` for how these parameters can be derived. The rust crate `noir-bignum-paramgen` contains both libraries and an executable that performs this formatting.
+See `signature_gen/src/main.rs` for how these parameters can be derived. The rust crate `noir-bignum-paramgen` contains both libraries and an executable that performs this formatting (https://crates.io/crates/noir-bignum-paramgen).
 
 ## Example Use
 
