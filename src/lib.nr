@@ -8,13 +8,13 @@ use dep::bignum::utils::arrayX::ArrayX;
 use dep::bignum::fields::Params2048;
 use dep::bignum::fields::Params1024;
 
-struct RSA<BN, BNInstance, let NumBytes: u64>{}
+struct RSA<BN, BNInstance, let NumBytes: u32>{}
 
 /**
  * @brief Compare a recovered byte hash from an RSA signature to the original message hash
  * @details Taken from https://github.com/richardliang/noir-rsa
  **/
-fn compare_signature_sha256<let N: u64>(padded_sha256_hash: [u8; N], msg_hash: [u8; 32]) -> bool {
+fn compare_signature_sha256<let N: u32>(padded_sha256_hash: [u8; N], msg_hash: [u8; 32]) -> bool {
     // Get length of sig (e.g. 1048 = 128 bytes, 2048 = 256 bytes)
     // NOTE: Assume MAX_BYTES < 2^32 bit number. MAX_BYTES of 259 > 2^8 bits so need to cast it to u32
 
@@ -51,7 +51,7 @@ fn compare_signature_sha256<let N: u64>(padded_sha256_hash: [u8; N], msg_hash: [
 
     true
 }
-impl<BN, BNInstance, let NumBytes: u64> RSA<BN, BNInstance, NumBytes>  where BN: BigNumTrait, BNInstance: BigNumInstanceTrait<BN> {
+impl<BN, BNInstance, let NumBytes: u32> RSA<BN, BNInstance, NumBytes>  where BN: BigNumTrait, BNInstance: BigNumInstanceTrait<BN> {
     /**
  * @brief Verify an RSA signature generated via the pkcs1v15 signature scheme.
  * @details The fourth function parameter is required to define the value of `NBytes`
