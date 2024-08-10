@@ -11,6 +11,15 @@ This library uses https://github.com/zac-williamson/noir-bignum as a dependency.
 
 Refer to [Noir's docs](https://noir-lang.org/docs/getting_started/installation/) and [Barretenberg's docs](https://github.com/AztecProtocol/aztec-packages/blob/master/barretenberg/cpp/src/barretenberg/bb/readme.md#installation) for installation steps.
 
+## Installation
+
+In your _Nargo.toml_ file, add the version of this library you would like to install under dependency:
+
+```
+[dependencies]
+noir_rsa = { tag = "v0.2", git = "https://github.com/noir-lang/noir_rsa" }
+```
+
 ## Usage
 
 See tests in `lib.nr` for examples.
