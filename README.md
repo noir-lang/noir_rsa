@@ -4,6 +4,19 @@ Optimized Noir library that evaluates RSA signatures.
 
 This library uses https://github.com/zac-williamson/noir-bignum as a dependency.
 
+## Benchmarks
+
+TODO
+
+### Costs
+
+Rough cost:
+
+- 2,048 bit RSA: 26,888 gates per verification
+- 1,024 bit RSA: 11,983 gates per verification
+
+A circuit that verifies 1 signature (and does nothing else) will cost ~32k due to initialization costs of lookup tables
+
 ## Dependencies
 
 - Noir ≥v0.32.0
@@ -81,12 +94,3 @@ See tests in `lib.nr` for additional examples.
         assert(rsa.verify_sha256_pkcs1v15(BNInstance, sha256_hash, signature));
     }
 ```
-
-## Costs
-
-Rough cost:
-
-- 2,048 bit RSA: 26,888 gates per verification
-- 1,024 bit RSA: 11,983 gates per verification
-
-A circuit that verifies 1 signature (and does nothing else) will cost ~32k due to initialization costs of lookup tables
