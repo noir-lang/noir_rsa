@@ -30,9 +30,21 @@ The rust crate `noir-bignum-paramgen` contains both libraries and an executable 
 
 To construct a `BigNumInstance` objects, both the bignum modulus (the public key) and a Barrett reduction parameter are required as arrays of Field elements, with each element representing a 120-bit slice of the number.
 
-### Example use
+### End-to-end example
 
-See tests in `lib.nr` for additional examples. The `pubkey_redc_param` parameter can be derived via the `noir-bignum-paramgen` tool and provided as a witness via Prover.toml
+#### 1. Generate RSA signature
+
+TODO
+
+#### 2. Parse parameters for Noir RSA
+
+The `pubkey_redc_param` parameter can be derived via the `noir-bignum-paramgen` tool and provided as a witness via Prover.toml
+
+TODO
+
+#### 3. Verify signature in Noir
+
+See tests in `lib.nr` for additional examples.
 
 ```rust
     use dep::noir_rsa::bignum::BigNum;
