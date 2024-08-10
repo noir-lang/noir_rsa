@@ -2,9 +2,14 @@
 
 Optimized Noir library that evaluates RSA signatures.
 
-Uses https://github.com/zac-williamson/noir-bignum as a dependency.
+This library uses https://github.com/zac-williamson/noir-bignum as a dependency.
 
-NOTE: library requires noir v 0.32.0 or later. If using the barretenberg backend, bb version of at least 0.46.1 is required (`bbup -v 0.46.1 `)
+## Dependencies
+
+- Noir ≥v0.32.0
+- Barretenberg ≥v0.46.1
+
+Refer to [Noir's docs](https://noir-lang.org/docs/getting_started/installation/) and [Barretenberg's docs](https://github.com/AztecProtocol/aztec-packages/blob/master/barretenberg/cpp/src/barretenberg/bb/readme.md#installation) for installation steps.
 
 ## Usage
 
