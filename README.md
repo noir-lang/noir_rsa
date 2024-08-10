@@ -22,11 +22,13 @@ Either way, you are free to choose how you collect / generate the signatures as 
 
 An example of how to generate a PKCS#1 v1.5 signature in Rust: https://docs.rs/rsa/latest/rsa/#pkcs1-v15-signatures
 
-#### Generate Noir RSA parameters
+#### Parse for Noir RSA
+
+Once you have gathered the RSA signature, you will need to parse it to a compatible format with this Noir RSA library.
+
+The rust crate `noir-bignum-paramgen` contains both libraries and an executable that performs this formatting (https://crates.io/crates/noir-bignum-paramgen). See `signature_gen/src/main.rs` for how these parameters can be derived.
 
 To construct a `BigNumInstance` objects, both the bignum modulus (the public key) and a Barrett reduction parameter are required as arrays of Field elements, with each element representing a 120-bit slice of the number.
-
-See `signature_gen/src/main.rs` for how these parameters can be derived. The rust crate `noir-bignum-paramgen` contains both libraries and an executable that performs this formatting (https://crates.io/crates/noir-bignum-paramgen).
 
 ### Example use
 
