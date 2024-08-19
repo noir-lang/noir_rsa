@@ -2,7 +2,7 @@
 
 Optimized Noir library that evaluates RSA signatures.
 
-This library uses https://github.com/zac-williamson/noir-bignum as a dependency.
+This library uses <https://github.com/zac-williamson/noir-bignum> as a dependency.
 
 ## Benchmarks
 
@@ -37,9 +37,9 @@ noir_rsa = { tag = "v0.2", git = "https://github.com/noir-lang/noir_rsa" }
 
 See tests in `lib.nr` for examples.
 
-### Parameters
+## End-to-end example
 
-#### RSA signature
+### Generate RSA signature
 
 To verify an RSA signature, you first need a signature.
 
@@ -47,50 +47,81 @@ Depending on the application you are building, you might be expecting user signa
 
 Either way, you are free to choose how you collect / generate the signatures as long as they comply with the PKCS#1 v1.5 RSA cryptography specifications.
 
-An example of how to generate a PKCS#1 v1.5 signature in Rust: https://docs.rs/rsa/latest/rsa/#pkcs1-v15-signatures
+You need to install Rustup and run it in order to install Rust:
 
-#### Parse for Noir RSA
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+rustup
+```
 
-Once you have gathered the RSA signature, you will need to parse it to a compatible format with this Noir RSA library.
+Then clone this repo, move into the `signature_gen` folder, and run `cargo run`, optionally with the message to sign:
 
-The rust crate `noir-bignum-paramgen` contains both libraries and an executable that performs this formatting (https://crates.io/crates/noir-bignum-paramgen). See `signature_gen/src/main.rs` for how these parameters can be derived.
+```bash
+cd signature_gen
+cargo run # or cargo run -- "hello world!"
+```
 
-To construct a `BigNumInstance` objects, both the bignum modulus (the public key) and a Barrett reduction parameter are required as arrays of Field elements, with each element representing a 120-bit slice of the number.
+The program prints the hash of the message, the RSA signature, and the BigNumber instance you should use.
 
-### End-to-end example
+#### Use it in your Noir test
 
-#### 1. Generate RSA signature
+Move into the `example` folder. Replace the hardcoded values with result of the previous step. Since you know the size of your key, you can import those types from the rsa lib:
 
-TODO
+```diff
+-    let hash: [u8; 32] = etc...
+-    let signature: BN2048 = etc...
+-    let BNInstance: [[Field; 18]; 2] = etc...
++    let hash: [u8; 32] = paste from terminal...
++    let signature: BN2048 = paste from terminal...
++    let bn: [[Field; 18]; 2] = paste from terminal...
+```
 
-#### 2. Parse parameters for Noir RSA
+Run the test:
 
-The `pubkey_redc_param` parameter can be derived via the `noir-bignum-paramgen` tool and provided as a witness via Prover.toml
+```bash
+nargo test
+```
 
-TODO
+#### Prove it
 
-#### 3. Verify signature in Noir
+Run `nargo check` to initialize `Prover.toml`:
 
-See tests in `lib.nr` for additional examples.
+```bash
+nargo check
+```
 
-```rust
-    use dep::noir_rsa::bignum::BigNum;
-    use dep::noir_rsa::bignum::runtime_bignum::BigNumInstance;
-    use dep::noir_rsa::bignum::fields::Params2048;
-    use dep::noir_rsa::RSA;
+Take the result of step 1 and make it in toml format. Example:
 
-    type BN2048 = BigNum<18, Params2048>;
-    type BNInstance = BigNumInstance<18, Params2048>;
-    type RSA2048 = RSA<BN2048, BNInstance, 256>;
+```toml
+bn = [
+    [
+        "0xcba7415fa9d2192d5cdac144f95f75",
+        "0x2b46305b91eeed9e9a992076172b46",
+        "0x76c9e6e0a407e67bc0a3ee276927d7",
+        "0x0d0eaa3b10ab266755ea20c44619f6",
+        "0x4b040e9ab1acb761b1ab9a60309ee4",
+        "...etc"
+    ]
+]
+```
 
-    fn verify_signature(pubkey: [u8; 256], signature: [u8; 256], pubkey_redc_param: BN2048)
-        let sha256_hash: [u8; 32] = dep::std::hash::sha256("hello world".as_bytes());
-        let modulus: BN2048 = BigNum::from_byte_be(pubkey);
-        let signature: BN2048 = BigNum::from_byte_be(signature);
+Then execute it, and prove it i.e. with barretenberg:
 
-        let instance: BNInstance = BigNumInstance::new(modulus, pubkey_redc_param);
+```bash
+nargo execute rsa
+bb prove -b ./target/example.json -w ./target/rsa.gz -o ./target/proof
+```
 
-        let rsa: RSA2048 = RSA {};
-        assert(rsa.verify_sha256_pkcs1v15(BNInstance, sha256_hash, signature));
-    }
+### Verify it
+
+To verify, we need to export the verification key:
+
+```bash
+bb write_vk -b ./target/example.json -o ./target/vk
+```
+
+And verify:
+
+```bash
+bb verify -k ./target/vk -p ./target/proof
 ```

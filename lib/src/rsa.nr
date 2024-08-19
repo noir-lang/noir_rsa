@@ -2,13 +2,9 @@ use dep::bignum::BigNum;
 use dep::bignum::runtime_bignum::BigNumInstance;
 use dep::bignum::runtime_bignum::BigNumTrait;
 use dep::bignum::runtime_bignum::BigNumInstanceTrait;
-use dep::bignum::runtime_bignum::BigNumParamsTrait;
-use dep::bignum::utils::u60_representation::U60Repr;
-use dep::bignum::utils::arrayX::ArrayX;
-use dep::bignum::fields::Params2048;
-use dep::bignum::fields::Params1024;
 
-struct RSA<BN, BNInstance, let NumBytes: u32>{}
+use crate::types::{RSA, BN1024, BN2048, BNInst1024, BNInst2048, RSA1024, RSA2048};
+
 
 /**
  * @brief Compare a recovered byte hash from an RSA signature to the original message hash
@@ -88,13 +84,6 @@ impl<BN, BNInstance, let NumBytes: u32> RSA<BN, BNInstance, NumBytes>  where BN:
     }
 }
 
-type BN1024 = BigNum<9, Params1024>;
-type BN2048 = BigNum<18, Params2048>;
-type BNInst1024 = BigNumInstance<9, Params1024>;
-type BNInst2048 = BigNumInstance<18, Params2048>;
-
-type RSA1024 = RSA<BN1024, BNInst1024, 128>;
-type RSA2048 = RSA<BN2048, BNInst2048, 256>;
 
 #[test]
 fn test_verify_sha256_pkcs1v15_1024() {
