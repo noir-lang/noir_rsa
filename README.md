@@ -58,7 +58,7 @@ Then clone this repo, move into the `signature_gen` folder, and run `cargo run`,
 
 ```bash
 cd signature_gen
-cargo run # or cargo run -- "hello world!"
+cargo run # or cargo run -- --msg "hello world!"
 ```
 
 The program prints the hash of the message, the RSA signature, and the BigNumber instance you should use.
@@ -70,10 +70,10 @@ Move into the `example` folder. Replace the hardcoded values with result of the 
 ```diff
 -    let hash: [u8; 32] = etc...
 -    let signature: BN2048 = etc...
--    let BNInstance: [[Field; 18]; 2] = etc...
+-    let bn = etc...
 +    let hash: [u8; 32] = paste from terminal...
 +    let signature: BN2048 = paste from terminal...
-+    let bn: [[Field; 18]; 2] = paste from terminal...
++    let bn = paste from terminal...
 ```
 
 Run the test:
@@ -90,7 +90,13 @@ Run `nargo check` to initialize `Prover.toml`:
 nargo check
 ```
 
-Take the result of step 1 and make it in toml format. Example:
+Run the same `cargo` command, but with the `--toml` flag:
+
+```bash
+cargo run -- --msg "hello world!" --toml
+```
+
+Copy and paste it to Prover.toml. Example:
 
 ```toml
 bn = [
