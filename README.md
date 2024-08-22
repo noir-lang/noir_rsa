@@ -2,20 +2,29 @@
 
 Optimized Noir library that evaluates RSA signatures.
 
-This library uses https://github.com/zac-williamson/noir-bignum as a dependency.
+This library uses https://github.com/noir-lang/noir-bignum as a dependency.
 
 ## Benchmarks
 
-TODO
+The benchmarking source code and its details can be found in [this repository](https://github.com/hashcloak/noir_rsa_bench).
 
-### Costs
+For the results, "UP" stands for UltraPlonk and "UH" stands for UltraHonk.
 
-Rough cost:
+The benchmark results for the verification of one signature are the following:
 
-- 2,048 bit RSA: 26,888 gates per verification
-- 1,024 bit RSA: 11,983 gates per verification
+| **Bit length** | **Circuit size** | **Avg. proving time (UP) [ms]**  | **Avg. proving time (UH) [ms]** | 
+|----------------|------------------|---------------------------------|--------------------------------------|
+|           1024 |             2204 |                           234.8 |                             181 |
+|           2048 |             7131 |                           345.6 |                           261.9 |
 
-A circuit that verifies 1 signature (and does nothing else) will cost ~32k due to initialization costs of lookup tables
+Also, the results for the verification of 10 signatures are the following:
+
+| **Bit length** | **Circuit size** | **Avg. proving time (UP) [ms]** | **Avg. proving time (UH) [ms]** |
+|----------------|------------------|---------------------------------|--------------------------------------|
+|           1024 |            21516 |                           970.9 |                           514.4 |   
+|           2048 |            63821 |                          1801.7 |                           964.2 |
+
+The benchmarks were executed using a laptop with Intel(R) Core(TM) i7-13700H CPU and 32 GB of RAM.
 
 ## Dependencies
 
