@@ -2,7 +2,7 @@
 
 Optimized Noir library that evaluates RSA signatures.
 
-This library uses https://github.com/zac-williamson/noir-bignum as a dependency.
+This library uses https://github.com/noir-lang/noir-bignum as a dependency.
 
 ## Benchmarks
 
