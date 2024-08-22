@@ -3,12 +3,10 @@ use rsa::pkcs1v15::Signature;
 use rsa::pkcs1v15::VerifyingKey;
 use rsa::{RsaPrivateKey, RsaPublicKey};
 
+use rand;
+use rsa::signature::{SignatureEncoding, Signer, Verifier};
 use rsa::traits::PublicKeyParts;
 use sha2::Sha256;
-use rsa::signature::{
-    SignatureEncoding, Signer, Verifier,
-};
-use rand;
 
 use noir_bignum_paramgen::{bn_limbs, bn_runtime_instance};
 
@@ -27,20 +25,19 @@ fn generate_2048_bit_signature_parameters() {
 
     let sig_uint: BigUint = BigUint::from_bytes_be(sig_bytes);
 
-
     let sig_str = bn_limbs(sig_uint.clone(), 2048);
-    println!("let signature: BigNum<18, Params2048> = BigNum::from_array({});", sig_str.as_str());
+    println!(
+        "let signature: BigNum<18, Params2048> = BigNum::from_array({});",
+        sig_str.as_str()
+    );
 
     let r = bn_runtime_instance(pub_key.n().clone(), 2048, String::from("BNInstance"));
     println!("{}", r.as_str());
 }
 
-
 fn main() {
     generate_2048_bit_signature_parameters();
 }
-
-
 
 fn test_signature_generation_impl() {
     let mut rng = rand::thread_rng();
@@ -57,11 +54,9 @@ fn test_signature_generation_impl() {
         &Signature::try_from(sig.as_slice()).unwrap(),
     );
     result.expect("failed to verify");
-
 }
 
 #[test]
-fn test_signature_generation()
-{
+fn test_signature_generation() {
     test_signature_generation_impl();
 }
