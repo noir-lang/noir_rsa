@@ -21,17 +21,10 @@ Also, the results for the verification of 10 signatures are the following:
 
 | **Bit length** | **Circuit size** | **Avg. proving time (UP) [ms]** | **Avg. proving time (UH) [ms]** |
 |----------------|------------------|---------------------------------|--------------------------------------|
-|           1024 |            21516 |                           970.9 |                           514.4 |                                 36.7 |
+|           1024 |            21516 |                           970.9 |                           514.4 |   
 |           2048 |            63821 |                          1801.7 |                           964.2 |
 
-### Costs
-
-Rough cost:
-
-- 2,048 bit RSA: 26,888 gates per verification
-- 1,024 bit RSA: 11,983 gates per verification
-
-A circuit that verifies 1 signature (and does nothing else) will cost ~32k due to initialization costs of lookup tables
+The benchmarks were executed using a laptop with Intel(R) Core(TM) i7-13700H CPU and 32 GB of RAM.
 
 ## Dependencies
 
