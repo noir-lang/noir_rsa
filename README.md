@@ -6,23 +6,23 @@ This library uses https://github.com/zac-williamson/noir-bignum as a dependency.
 
 ## Benchmarks
 
-We ran a benchmark to measure the number of gates of the circuit, the proving time and the verification time of the RSA verification. The benchmark includes two main scenarios: the signature verification of one signature and 10 different signatures. For both scenarios, we reported all the metrics mentioned above.
+The benchmarking source code and its details can be found in [this repository](https://github.com/hashcloak/noir_rsa_bench).
 
-On the one hand, the number of gates is measured using the `bb gates` command. On the other hand, the timing measures are taken using the `hyperfine` command line tool which takes the average of ten executions of the proving and verification commands. These averages are the ones reported in the results presented here.
+For the results, "UP" stands for UltraPlonk and "UH" stands for UltraHonk.
 
-The results for the verification of one signature are the following:
+The benchmark results for the verification of one signature are the following:
 
-| **Bit length** | **Circuit size** | **Avg. proving time (BB) [ms]** | **Avg. verification time (BB) [ms]** | **Avg. proving time (UH) [ms]** | **Avg. verification time (UH) [ms]** |
-|----------------|------------------|---------------------------------|--------------------------------------|---------------------------------|--------------------------------------|
-|           1024 |             2204 |                           234.8 |                                 33.2 |                             181 |                                 37.1 |
-|           2048 |             7131 |                           345.6 |                                 32.7 |                           261.9 |                                 36.4 |
+| **Bit length** | **Circuit size** | **Avg. proving time (UP) [ms]**  | **Avg. proving time (UH) [ms]** | 
+|----------------|------------------|---------------------------------|--------------------------------------|
+|           1024 |             2204 |                           234.8 |                             181 |
+|           2048 |             7131 |                           345.6 |                           261.9 |
 
-On the other hand, the results for the verification of 10 signatures are the following:
+Also, the results for the verification of 10 signatures are the following:
 
-| **Bit length** | **Circuit size** | **Avg. proving time (BB) [ms]** | **Avg. verification time (BB) [ms]** | **Avg. proving time (UH) [ms]** | **Avg. verification time (UH) [ms]** |
-|----------------|------------------|---------------------------------|--------------------------------------|---------------------------------|--------------------------------------|
-|           1024 |            21516 |                           970.9 |                                 32.3 |                           514.4 |                                 36.7 |
-|           2048 |            63821 |                          1801.7 |                                 32.3 |                           964.2 |                                   37 |
+| **Bit length** | **Circuit size** | **Avg. proving time (UP) [ms]** | **Avg. proving time (UH) [ms]** |
+|----------------|------------------|---------------------------------|--------------------------------------|
+|           1024 |            21516 |                           970.9 |                           514.4 |                                 36.7 |
+|           2048 |            63821 |                          1801.7 |                           964.2 |
 
 ### Costs
 
