@@ -45,7 +45,7 @@ To verify an RSA signature, you first need a signature.
 
 Depending on the application you are building, you might be expecting user signatures from existing signing services (e.g. emails, passports, git commits), or you might be building the ability for users to sign directly in your application.
 
-Either way, you are free to choose how you collect / generate the signatures as long as they comply with the PKCS#1 v1.5 RSA cryptography specifications.
+Either way, you are free to choose how you collect / generate the signatures as long as they comply with the PKCS#1 v1.5 RSA cryptography specifications (ex. by following <https://docs.rs/rsa/latest/rsa/#pkcs1-v15-signatures>).
 
 You need to install Rustup and run it in order to install Rust:
 
@@ -61,7 +61,7 @@ cd signature_gen
 cargo run # or cargo run -- --msg "hello world!"
 ```
 
-The program prints the hash of the message, the RSA signature, and the BigNumber instance you should use.
+The program prints the hash of the message, the RSA signature, and the BigNumber instance you should use. These are parsed to a compatible format, ready to be used in the Noir RSA library.
 
 #### Use it in your Noir test
 
