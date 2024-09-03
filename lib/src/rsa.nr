@@ -5,7 +5,6 @@ use dep::bignum::runtime_bignum::BigNumInstanceTrait;
 
 use crate::types::{RSA, BN1024, BN2048, BNInst1024, BNInst2048, RSA1024, RSA2048};
 
-
 /**
  * @brief Compare a recovered byte hash from an RSA signature to the original message hash
  * @details Taken from https://github.com/richardliang/noir-rsa
@@ -83,7 +82,6 @@ impl<BN, BNInstance, let NumBytes: u32> RSA<BN, BNInstance, NumBytes>  where BN:
         compare_signature_sha256(padded_sha256_hash_bytes, msg_hash)
     }
 }
-
 
 #[test]
 fn test_verify_sha256_pkcs1v15_1024() {
