@@ -60,12 +60,10 @@ impl<BN, BNInstance, let NumBytes: u32> RSA<BN, BNInstance, NumBytes>  where BN:
  **/
     pub fn verify_sha256_pkcs1v15(_: Self, instance: BNInstance, msg_hash: [u8; 32], sig: BN, exponent: u32) -> bool {
         assert((exponent == 3) | (exponent == 65537), "Exponent must be 65537 or 3");
-        // e = 65537 = 1 0000 0000 0000 0001
         let mut exponentiated = instance.mul(sig, sig); // sig^2
 
-        if exponent == 3 {
-            exponentiated = instance.mul(exponentiated, sig); // sig^2 * sig = sig^3
-        } else if exponent == 65537 {
+        if exponent == 65537 {
+            // e = 65537 = 1 0000 0000 0000 0001
             exponentiated = instance.mul(exponentiated, exponentiated); // sig^2 * sig^2 = sig^4
             exponentiated = instance.mul(exponentiated, exponentiated); // sig^8
             exponentiated = instance.mul(exponentiated, exponentiated); // sig^16
@@ -81,8 +79,10 @@ impl<BN, BNInstance, let NumBytes: u32> RSA<BN, BNInstance, NumBytes>  where BN:
             exponentiated = instance.mul(exponentiated, exponentiated); // sig^16384
             exponentiated = instance.mul(exponentiated, exponentiated); // sig^32768
             exponentiated = instance.mul(exponentiated, exponentiated); // sig^65536
-            exponentiated = instance.mul(exponentiated, sig); // sig^65537
         }
+        // otherwise, e = 3 = 11
+
+        exponentiated = instance.mul(exponentiated, sig); // either sig^2 * sig = sig^3 or sig^65536 * sig = sig^65537
 
         let mut padded_sha256_hash_bytes: [u8; NumBytes] = exponentiated.to_le_bytes();
         compare_signature_sha256(padded_sha256_hash_bytes, msg_hash)
