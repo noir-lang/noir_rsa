@@ -5,6 +5,67 @@ use dep::bignum::runtime_bignum::BigNumInstanceTrait;
 
 use crate::types::{RSA, BN1024, BN2048, BNInst1024, BNInst2048, RSA1024, RSA2048};
 
+global HASH_LEN: u32 = 32;
+
+fn reverse_array<let N: u32>(array: [u8; N]) -> [u8; N] {
+    let mut reversed = [0 as u8; N];
+    for i in 0..N {
+        reversed[i] = array[N - i - 1];
+    }
+    reversed
+}
+
+fn get_array_slice<let N: u32, let M: u32>(array: [u8; N], start: u32, end: u32) -> [u8; M] {
+    let mut slice = [0 as u8; M];
+    for i in 0..M {
+        if i < end - start {
+            slice[i] = array[start + i];
+        }
+    }
+    slice
+}
+
+fn mgf1_sha256<let SEED_LEN: u32, let MASK_LEN: u32>(seed: [u8; SEED_LEN]) -> [u8; MASK_LEN] {
+    // MASK_LEN must be less than 2^32 * HASH_LEN
+    dep::std::field::bn254::assert_lt(MASK_LEN as Field, 0xffffffff * HASH_LEN as Field + 1);
+
+    // HASH_LEN bytes are added at each iteration and there is at least 1 iteration
+    // so if HASH_LEN is not enough to fill MASK_LEN bytes in one iteration, 
+    // another one is required and so on.
+    let iterations = (MASK_LEN / HASH_LEN) + 1;
+
+    let mut mask: [u8; MASK_LEN] = [0; MASK_LEN];
+    let mut hashed: [u8; HASH_LEN] = [0; HASH_LEN];
+
+    for i in 0..iterations {
+        let mut block: [u8; 256] = [0; 256];
+
+        // Copy seed to block
+        for j in 0..SEED_LEN {
+            block[j] = seed[j];
+        }
+
+        // Add counter to block
+        let counter_bytes = (i as Field).to_be_bytes(4);
+        for j in 0..4 {
+            block[SEED_LEN + j] = counter_bytes[j];
+        }
+
+        // Hash the block
+        // First SEED_LEN bytes are the seed, next 4 bytes are the counter
+        hashed = dep::std::hash::sha256_var(block, SEED_LEN as u64 + 4);
+
+        // Copy hashed output to mask
+        for j in 0..HASH_LEN {
+            if i * HASH_LEN + j < MASK_LEN {
+                mask[i * HASH_LEN + j] = hashed[j];
+            }
+        }
+    }
+
+    mask
+}
+
 /**
  * @brief Compare a recovered byte hash from an RSA signature to the original message hash
  * @details Taken from https://github.com/richardliang/noir-rsa
@@ -47,6 +108,95 @@ fn compare_signature_sha256<let N: u32>(padded_sha256_hash: [u8; N], msg_hash: [
     true
 }
 impl<BN, BNInstance, let NumBytes: u32> RSA<BN, BNInstance, NumBytes>  where BN: BigNumTrait, BNInstance: BigNumInstanceTrait<BN> {
+    pub fn verify_sha256_pss(
+        _: Self,
+        instance: BNInstance,
+        msg_hash: [u8; 32],
+        sig: BN,
+        key_size: u32
+    ) -> bool {
+        let mut exponentiated = instance.mul(sig, sig);
+        exponentiated = instance.mul(exponentiated, exponentiated);
+        exponentiated = instance.mul(exponentiated, exponentiated);
+        exponentiated = instance.mul(exponentiated, exponentiated);
+        exponentiated = instance.mul(exponentiated, exponentiated);
+        exponentiated = instance.mul(exponentiated, exponentiated);
+        exponentiated = instance.mul(exponentiated, exponentiated);
+        exponentiated = instance.mul(exponentiated, exponentiated);
+        exponentiated = instance.mul(exponentiated, exponentiated);
+        exponentiated = instance.mul(exponentiated, exponentiated);
+        exponentiated = instance.mul(exponentiated, exponentiated);
+        exponentiated = instance.mul(exponentiated, exponentiated);
+        exponentiated = instance.mul(exponentiated, exponentiated);
+        exponentiated = instance.mul(exponentiated, exponentiated);
+        exponentiated = instance.mul(exponentiated, exponentiated);
+        exponentiated = instance.mul(exponentiated, exponentiated);
+        exponentiated = instance.mul(exponentiated, sig);
+        let em:[u8; NumBytes] = reverse_array(exponentiated.to_le_bytes());
+
+        let em_len = em.len();
+        let em_bits = key_size - 1;
+        let h_len = 32;
+        let s_len = 32;
+
+        // Check if emLen < hLen + sLen + 2
+        assert(em_len >= h_len + s_len + 2);
+
+        // Check if eM ends with 0xBC
+        assert(em[em_len - 1] == 0xBC);
+
+        let db_mask_len = em_len - h_len - 1;
+        // 256 - 32 - 1 = 223
+        // As hash is 32 bytes and we also remove the 0xBC at the end, we have 223 bytes left for DB
+        let masked_db: [u8; 223] = get_array_slice(em, 0, db_mask_len);
+        let h = get_array_slice(em, db_mask_len, em_len - 1);
+
+        // Mask the leftmost bits
+        let bits_to_mask = 8 * em_len - em_bits;
+        let mask = 0xFF >> bits_to_mask as u8;
+        // Make sure the 8 * em_len - em_bits leftmost bits are 0
+        // c.f. https://github.com/RustCrypto/RSA/blob/aeedb5adf5297892fcb9e11f7c0f6c0157005c58/src/algorithms/pss.rs#L205
+        assert((masked_db[0] & !mask) == 0);
+
+        // Generate dbMask using MGF1
+        let db_mask:[u8; 223] = mgf1_sha256(h);
+
+        // Compute DB = maskedDB xor dbMask
+        let mut db = [0 as u8; 223];
+        for i in 0..db_mask_len {
+            db[i] = masked_db[i] ^ db_mask[i];
+        }
+
+        // Set leftmost byte of DB to 0
+        db[0] = 0;
+
+        // Check if the leftmost octets of DB are zero
+        for i in 0..(em_len - h_len - s_len - 2) {
+            assert(db[i] == 0);
+        }
+
+        // Check if the octet at position emLen - hLen - sLen - 2 is 0x01
+        assert(db[em_len - h_len - s_len - 2] == 0x01);
+
+        // Extract salt
+        let salt: [u8; 32] = get_array_slice(db, db_mask_len - s_len, db_mask_len);
+
+        // Construct M'
+        // M' = (0x)00 00 00 00 00 00 00 00 || msg_hash || salt
+        let mut m_prime = [0 as u8; 72]; // 8 + h_len + s_len
+        for i in 8..40 {
+            m_prime[i] = msg_hash[i - 8];
+        }
+        for i in 40..72 {
+            m_prime[i] = salt[i - 40];
+        }
+
+        // Compute H'
+        let h_prime = dep::std::hash::sha256(m_prime);
+
+        // Compare H and H'
+        h == h_prime
+    }
     /**
  * @brief Verify an RSA signature generated via the pkcs1v15 signature scheme.
  * @details The fourth function parameter is required to define the value of `NBytes`
@@ -123,4 +273,35 @@ fn test_verify_sha256_pkcs1v15_2048() {
     );
     let rsa: RSA2048 = RSA {};
     assert(rsa.verify_sha256_pkcs1v15(BNInstance, sha256_hash, signature));
+}
+
+#[test]
+fn test_mgf1_sha256() {
+    let seed: [u8; 32] = dep::std::hash::sha256("Hello World! This is Noir-RSA".as_bytes());
+    let expected_mask: [u8; 32] = [
+        106, 93, 232, 46, 236, 203, 51, 228, 103, 104, 145, 29, 197, 74, 26, 194, 135, 200, 40, 232, 179, 172, 220, 135, 51, 185, 209, 35, 194, 131, 176, 190
+    ];
+    let mask: [u8; 32] = mgf1_sha256(seed);
+    assert(mask == expected_mask);
+}
+
+#[test]
+fn test_verify_sha256_pss_2048() {
+    let sha256_hash: [u8; 32] = dep::std::hash::sha256("Hello World! This is Noir-RSA".as_bytes());
+    let BNInstance: BNInst2048 = BigNumInstance::new(
+        [
+        0x9c149f9aa49db0ee279be7b1b9f2b1, 0x472c42ef0019a179b36a37313423d5, 0x6796724132fb7b7b14db1078126604, 0xafbc95dc121ab99608b8f4145536b7, 0xef72836154b7feaaa7b4a79e07a3fa, 0x44ef7a3c294a863a2b8820c17a5ce6, 0x7bbb5c1d1160b1136cf310155d04d3, 0x81e11b000f6d1a72cdd0c57225a29c, 0x9d02c16e2643b7d38e082bdde79b0a, 0xd8d1905fde1d7bafc516ef0a544793, 0x41aa69097fc68ca3efb4a20e953f45, 0xc1580306d50a17bdeef26eeace7d9e, 0x69ecdf56a571e2349c615851b28f62, 0x79d7c408c01d0d601a318c3c3fb840, 0x94c5ac3935445baf4de56e50c50b30, 0x4d5c5d278e3a0f7f0617908b86ef71, 0x2ad08f95d923c8c04d9d93d072e13d, 0xaf
+    ],
+        [
+        0xabdcccb22151f142cbaa207bf6cc89, 0xeaad15b6065fcff60108c268554cfd, 0xc508f4e0a4559a78166f1739577c8e, 0xb140e6600daaeb1038e38081ed338c, 0x72e332e60e3c44cdedbe157b539714, 0xf60bff05409ef357f90d0087def9b3, 0x9c82957c546f138ee9c7edd6e8fe18, 0xe04e36bd481ece291a557975dab90, 0xfd7c8ea97e11164495d881394d304b, 0xfa5a096283f960b1256700d772e9, 0x61c0057ea007659e58ac8754fec77c, 0x57bc9dd907a5065cd6ba3d6bd6b0e9, 0x517515a3fd6408b5e5766be7a692c5, 0x2b817d4eb0fe5afd47900c0e56f93f, 0xf604e52448f245c64e0e66198018e8, 0x8db41fd0ec788dec05113586c205ea, 0x224597fab441cd104694d7d61e0a57, 0x176
+    ]
+    );
+    let signature: BN2048 = BigNum::from_array(
+        [
+        0x17b138e0afc2893ae13d2eea1ce349, 0x5d18d222dfc4af50aa6eb31eeb8403, 0x29d2a6d0fc929addd1785228f0f350, 0x162ff4f4bfc98867ff1e9ae7e4dfa2, 0xd38c9fe831a9acb84eb5754fde653f, 0xd9629bcc05a5ba2fd4edbd257c8b22, 0xc130ab593612459d247b0a1430515f, 0x20f1b3ca2724f0f811a8c793130196, 0x507cc26d77029853a1ef7a46c7f3c1, 0xb335060a4a9f58b25173d84e50b600, 0x5836975b3491cfe85a98204fca00f2, 0x17f96851d11d36ab2b93adb7aa3c07, 0x8e36e106516fded0e68a2a1be0d6b6, 0x697f2906a826b9dee8f3f497596db6, 0x38fdb5f7ca447d7b55e3f4ab592050, 0x2511143f27e0ce03e03100532b68a5, 0x01db0955c41de01a6c2e4bb902b621, 0x3d
+    ]
+    );
+
+    let rsa: RSA2048 = RSA {};
+    assert(rsa.verify_sha256_pss(BNInstance, sha256_hash, signature, 2048));
 }

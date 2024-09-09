@@ -2,6 +2,8 @@ use num_bigint::BigUint;
 use rsa::pkcs1v15::Signature;
 use rsa::pkcs1v15::VerifyingKey;
 use rsa::{RsaPrivateKey, RsaPublicKey};
+use signature::Keypair;
+use signature::RandomizedSignerMut;
 use std::env;
 use toml::Value;
 
@@ -31,7 +33,7 @@ fn format_limbs_as_toml_value(limbs: &Vec<BigUint>) -> Vec<Value> {
         .collect()
 }
 
-fn generate_2048_bit_signature_parameters(msg: &str, as_toml: bool) {
+fn generate_2048_bit_signature_parameters(msg: &str, as_toml: bool, pss: bool) {
     let mut hasher = Sha256::new();
     hasher.update(msg.as_bytes());
     let hashed_message = hasher.finalize();
@@ -48,12 +50,16 @@ fn generate_2048_bit_signature_parameters(msg: &str, as_toml: bool) {
         RsaPrivateKey::new(&mut rng, bits).expect("failed to generate a key");
     let pub_key: RsaPublicKey = priv_key.clone().into();
 
-    let signing_key = rsa::pkcs1v15::SigningKey::<Sha256>::new(priv_key);
-    let sig: Vec<u8> = signing_key.sign(msg.as_bytes()).to_vec();
+    let sig_bytes = if pss {
+        let mut signing_key = rsa::pss::BlindedSigningKey::<Sha256>::new(priv_key);
+        let sig = signing_key.sign_with_rng(&mut rng, msg.as_bytes());
+        sig.to_vec()
+    } else {
+        let signing_key = rsa::pkcs1v15::SigningKey::<Sha256>::new(priv_key);
+        signing_key.sign(msg.as_bytes()).to_vec()
+    };
 
-    let sig_bytes = &Signature::try_from(sig.as_slice()).unwrap().to_bytes();
-
-    let sig_uint: BigUint = BigUint::from_bytes_be(sig_bytes);
+    let sig_uint: BigUint = BigUint::from_bytes_be(&sig_bytes);
 
     let sig_str = bn_limbs(sig_uint.clone(), 2048);
 
@@ -108,12 +114,19 @@ fn main() {
                 .long("toml")
                 .help("Print output in TOML format"),
         )
+        .arg(
+            Arg::with_name("pss")
+                .short("p")
+                .long("pss")
+                .help("Use RSA PSS"),
+        )
         .get_matches();
 
     let msg = matches.value_of("msg").unwrap();
     let as_toml = matches.is_present("toml");
-
-    generate_2048_bit_signature_parameters(msg, as_toml);
+    let pss = matches.is_present("pss");
+    
+    generate_2048_bit_signature_parameters(msg, as_toml, pss);
 }
 
 fn test_signature_generation_impl() {
