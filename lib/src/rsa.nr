@@ -25,6 +25,9 @@ fn get_array_slice<let N: u32, let M: u32>(array: [u8; N], start: u32, end: u32)
     slice
 }
 
+/**
+ * @brief Generate a mask from a seed using the MGF1 algorithm with SHA256 as the hash function
+ **/
 fn mgf1_sha256<let SEED_LEN: u32, let MASK_LEN: u32>(seed: [u8; SEED_LEN]) -> [u8; MASK_LEN] {
     // MASK_LEN must be less than 2^32 * HASH_LEN
     dep::std::field::bn254::assert_lt(MASK_LEN as Field, 0xffffffff * HASH_LEN as Field + 1);
@@ -38,6 +41,8 @@ fn mgf1_sha256<let SEED_LEN: u32, let MASK_LEN: u32>(seed: [u8; SEED_LEN]) -> [u
     let mut hashed: [u8; HASH_LEN] = [0; HASH_LEN];
 
     for i in 0..iterations {
+        // Hopefully one day we can use the line below, but for now we'll go with a fixed value
+        // let mut block: [u8; SEED_LEN + 4] = [0; SEED_LEN + 4];
         let mut block: [u8; 256] = [0; 256];
 
         // Copy seed to block
@@ -108,6 +113,12 @@ fn compare_signature_sha256<let N: u32>(padded_sha256_hash: [u8; N], msg_hash: [
     true
 }
 impl<BN, BNInstance, let NumBytes: u32> RSA<BN, BNInstance, NumBytes>  where BN: BigNumTrait, BNInstance: BigNumInstanceTrait<BN> {
+    /**
+    * @brief Verify an RSA signature generated via the PSS signature scheme.
+    * @details `key_size` is the size of the RSA modulus in bits and is required to correctly decode the signature.
+    *
+    * @note We assume the public key exponent `e` is 65537
+    **/
     pub fn verify_sha256_pss(
         _: Self,
         instance: BNInstance,
@@ -115,6 +126,7 @@ impl<BN, BNInstance, let NumBytes: u32> RSA<BN, BNInstance, NumBytes>  where BN:
         sig: BN,
         key_size: u32
     ) -> bool {
+        // Exponentiate the signature assuming e = 65537
         let mut exponentiated = instance.mul(sig, sig);
         exponentiated = instance.mul(exponentiated, exponentiated);
         exponentiated = instance.mul(exponentiated, exponentiated);
@@ -132,6 +144,9 @@ impl<BN, BNInstance, let NumBytes: u32> RSA<BN, BNInstance, NumBytes>  where BN:
         exponentiated = instance.mul(exponentiated, exponentiated);
         exponentiated = instance.mul(exponentiated, exponentiated);
         exponentiated = instance.mul(exponentiated, sig);
+        // Convert the exponentiated signature to a byte array and reverse it to 
+        // get it in big endian order, which is much easier to work with for 
+        // the rest of the verification process
         let em:[u8; NumBytes] = reverse_array(exponentiated.to_le_bytes());
 
         // The modulus size in bits minus 1
