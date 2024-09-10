@@ -134,8 +134,12 @@ impl<BN, BNInstance, let NumBytes: u32> RSA<BN, BNInstance, NumBytes>  where BN:
         exponentiated = instance.mul(exponentiated, sig);
         let em:[u8; NumBytes] = reverse_array(exponentiated.to_le_bytes());
 
-        let em_len = em.len();
+        // The modulus size in bits minus 1
         let em_bits = key_size - 1;
+        // The actual length of the encoded message without any of the leftmost 0s
+        let em_len = (em_bits + 7) / 8;
+        // The length of the modulus in bytes
+        let key_len = (key_size + 7) / 8;
         let h_len = 32;
         let s_len = 32;
 
@@ -143,20 +147,21 @@ impl<BN, BNInstance, let NumBytes: u32> RSA<BN, BNInstance, NumBytes>  where BN:
         assert(em_len >= h_len + s_len + 2);
 
         // Check if eM ends with 0xBC
-        assert(em[em_len - 1] == 0xBC);
+        assert(em[em.len() - 1] == 0xBC);
 
         let db_mask_len = em_len - h_len - 1;
         // 256 - 32 - 1 = 223
         // As hash is 32 bytes and we also remove the 0xBC at the end, we have 223 bytes left for DB
-        let masked_db: [u8; 223] = get_array_slice(em, 0, db_mask_len);
-        let h = get_array_slice(em, db_mask_len, em_len - 1);
+        let masked_db: [u8; 223] = get_array_slice(em, em.len() - key_len, db_mask_len + em.len() - key_len);
+        let h = get_array_slice(em, db_mask_len + em.len() - key_len, em.len() - 1);
 
         // Mask the leftmost bits
         let bits_to_mask = 8 * em_len - em_bits;
         let mask = 0xFF >> bits_to_mask as u8;
+        let first_byte = masked_db[em.len() - key_len];
         // Make sure the 8 * em_len - em_bits leftmost bits are 0
         // c.f. https://github.com/RustCrypto/RSA/blob/aeedb5adf5297892fcb9e11f7c0f6c0157005c58/src/algorithms/pss.rs#L205
-        assert((masked_db[0] & !mask) == 0);
+        assert((first_byte & !mask) == 0);
 
         // Generate dbMask using MGF1
         let db_mask:[u8; 223] = mgf1_sha256(h);
@@ -305,3 +310,25 @@ fn test_verify_sha256_pss_2048() {
     let rsa: RSA2048 = RSA {};
     assert(rsa.verify_sha256_pss(BNInstance, sha256_hash, signature, 2048));
 }
+
+// The following test is using an unusual key size to test an edge case for key size not divisible by 8
+/*#[test]
+fn test_verify_sha256_pss_1964() {
+    let sha256_hash: [u8; 32] = dep::std::hash::sha256("Hello World! This is Noir-RSA".as_bytes());
+    let BNInstance: BNInst1964 = BigNumInstance::new(
+        [
+        0x2a035f94929bb130deaf854028f433, 0xbcfe17113a631a59158c3a81b85d4d, 0x136b271c541b8dbad5672777c48d9a, 0xa7f9a26a6fcebd3299c1604c501818, 0x8eb621862ba1bb8c432bc64c21e0a0, 0x1e0be8f31f728998e1e8783d06271d, 0x70f2a1450579e00f86bb39abe44cd8, 0xf26823e29557176366145bad958caa, 0x5b11eb8d6d8d5f0afb047b8826747a, 0xbfd7ee9d32a932bf274c75b63c8f40, 0x26bf6dc058ec401fd5f34c7ec1755e, 0xa04110ce6ae975c6f9075dc8917565, 0x24b194b23c695ba8eea35a6f336c2a, 0x153f3fec0be28f1f1636069149ba47, 0xca764dc95c1f96a325f9d51254a790, 0x67ea496073a3adcb0d093afec3c2a2, 0xcdd00d115e5
+    ],
+        [
+        0xeb858462288906c78264566f2517bf, 0x307764ae5c67f7b179be6178742f97, 0x2eadd630b79ccfbea22e68e50701b9, 0x2683b85d13dffa94d1c986870489f1, 0x6d9f9788a78c52cab1918b4070842b, 0xd93261e5f34c5508a47183b62fb3b4, 0xd4b3a75c20554347708df7583ff81f, 0x63d7878156e7ea6a62f8c3f7e6f15f, 0x6cc531bba9e02310e414a3aa4e1a06, 0x19b50bf06c4444b2a788ec44c41c91, 0xd6bad67102a89597684b9d53f5370f, 0x726cc1262518f1b59aded3184d3ae4, 0xd018338b704c0a2535dee1fe70ce60, 0x9ec435e1f1652d2dde4e56cce77901, 0x41460a18f3fed1112e41afc93a2464, 0xc19e91fbbab21f155e4b71dbe9a7dc, 0x13e6ce9d6a14
+    ]
+    );
+    let signature: BN1964 = BigNum::from_array(
+        [
+        0x29787913470259aee2641be22694c6, 0xec09bc1e2d77c6585d183298e7821f, 0x44b3474a5a85c68fd5b1c0d58b8a14, 0xb4305577f64847c7365e4c50bd3ce6, 0x6fa468f111116d3b240bc26a6f7aa1, 0xfa4e31aea797f4e13d832798e84698, 0x318e9578a49fa2cfea99f604597688, 0xc8be4cf64d62c6342b7ee14be70cb5, 0xc7a942ab90fbff9e8791d6a24ae841, 0xd75dc97acf08b6c3d6fbe52ed2d025, 0x06708e15a6d7649eac7c37ab06c9d6, 0xc5602556b8d74f4e98983b65eb698b, 0xd1ce86b68f8737ef86c35344f4d55e, 0xff6c2b0f9e8a62758c36bdcfe31ce9, 0xbadab8d8f0a51ff4d8d94600eb7c58, 0xcefdcd5b6b58a024020ee703e313b3, 0x0a1a27008f49
+    ]
+    );
+
+    let rsa: RSA1964 = RSA {};
+    assert(rsa.verify_sha256_pss(BNInstance, sha256_hash, signature, 1964));
+}*/
