@@ -2,8 +2,8 @@ use dep::bignum::BigNum;
 use dep::bignum::runtime_bignum::BigNumInstance;
 use dep::bignum::runtime_bignum::BigNumTrait;
 use dep::bignum::runtime_bignum::BigNumInstanceTrait;
-
-use crate::types::{RSA, BN1024, BN2048, BNInst1024, BNInst2048, RSA1024, RSA2048};
+use dep::bignum::runtime_bignum::BigNumParamsTrait;
+use crate::types::{RSA, BN1024, BN2048, BNInst1024, BNInst2048, RSA1024, RSA2048, BN1964, BNInst1964, RSA1964};
 
 global HASH_LEN: u32 = 32;
 
@@ -150,10 +150,13 @@ impl<BN, BNInstance, let NumBytes: u32> RSA<BN, BNInstance, NumBytes>  where BN:
         assert(em[em.len() - 1] == 0xBC);
 
         let db_mask_len = em_len - h_len - 1;
+        // This offset is necessary for key sizes not divisible by 8
+        // Will equal 0 for key sizes divisible by 8
+        let offset = em.len() - key_len;
         // 256 - 32 - 1 = 223
         // As hash is 32 bytes and we also remove the 0xBC at the end, we have 223 bytes left for DB
-        let masked_db: [u8; 223] = get_array_slice(em, em.len() - key_len, db_mask_len + em.len() - key_len);
-        let h = get_array_slice(em, db_mask_len + em.len() - key_len, em.len() - 1);
+        let masked_db: [u8; 223] = get_array_slice(em, offset, db_mask_len + offset);
+        let h = get_array_slice(em, db_mask_len + offset, em.len() - 1);
 
         // Mask the leftmost bits
         let bits_to_mask = 8 * em_len - em_bits;
@@ -312,7 +315,7 @@ fn test_verify_sha256_pss_2048() {
 }
 
 // The following test is using an unusual key size to test an edge case for key size not divisible by 8
-/*#[test]
+#[test]
 fn test_verify_sha256_pss_1964() {
     let sha256_hash: [u8; 32] = dep::std::hash::sha256("Hello World! This is Noir-RSA".as_bytes());
     let BNInstance: BNInst1964 = BigNumInstance::new(
@@ -331,4 +334,4 @@ fn test_verify_sha256_pss_1964() {
 
     let rsa: RSA1964 = RSA {};
     assert(rsa.verify_sha256_pss(BNInstance, sha256_hash, signature, 1964));
-}*/
+}
