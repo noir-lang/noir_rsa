@@ -53,9 +53,7 @@ fn mgf1_sha256<let SEED_LEN: u32, let MASK_LEN: u32>(seed: [u8; SEED_LEN]) -> [u
     let mut hashed: [u8; HASH_LEN] = [0; HASH_LEN];
 
     for i in 0..iterations {
-        // Hopefully one day we can use the line below, but for now we'll go with a fixed value
-        // let mut block: [u8; SEED_LEN + 4] = [0; SEED_LEN + 4];
-        let mut block: [u8; 256] = [0; 256];
+        let mut block: [u8; SEED_LEN + 4] = [0; SEED_LEN + 4];
 
         // Copy seed to block
         for j in 0..SEED_LEN {
@@ -63,7 +61,7 @@ fn mgf1_sha256<let SEED_LEN: u32, let MASK_LEN: u32>(seed: [u8; SEED_LEN]) -> [u
         }
 
         // Add counter to block
-        let counter_bytes = (i as Field).to_be_bytes(4);
+        let counter_bytes: [u8; 4] = (i as Field).to_be_bytes();
         for j in 0..4 {
             block[SEED_LEN + j] = counter_bytes[j];
         }
@@ -169,27 +167,23 @@ impl<BN, BNInstance, let NumBytes: u32> RSA<BN, BNInstance, NumBytes>  where BN:
         // In this case, we'll have a leading zero byte in em that we need to ignore
         // c.f. https://github.com/RustCrypto/RSA/blob/aeedb5adf5297892fcb9e11f7c0f6c0157005c58/src/algorithms/pss.rs#L242
         let offset = key_len - em_len;
-        // As hash is 32 bytes and we also remove the 0xBC at the end, we have up to NumBytes - 33 bytes left for DB
-        // For example, for 2048 bit RSA, we have 256 - 32 - 1 = 223 bytes left for DB
-        // and for 1024 bit RSA, we have 128 - 32 - 1 = 95 bytes left for DB
-        // So we should do something like this:
-        // let masked_db: [u8; NumBytes - 32 - 1] = get_array_slice(em, offset, db_mask_len + offset);
-        // But for now we can't so we'll just use NumBytes and have 33 trailing 0s
-        let masked_db: [u8; NumBytes] = get_array_slice(em, offset, db_mask_len + offset);
+        // As the hash is 32 bytes and we also remove the 0xBC at the end, we have up to NumBytes - 33 bytes left for DB
+        // For example, for 2048 bit RSA (i.e. 256 bytes), we have 256 - 33 = 223 bytes left for DB
+        // and for 1024 bit RSA (i.e. 128 bytes), we have 128 - 33 = 95 bytes left for DB
+        let masked_db: [u8; NumBytes - 33] = get_array_slice(em, offset, db_mask_len + offset);
         let h = get_array_slice(em, db_mask_len + offset, em.len() - 1);
 
         // Make sure the 8 * em_len - em_bits leftmost bits are 0
         // c.f. https://github.com/RustCrypto/RSA/blob/aeedb5adf5297892fcb9e11f7c0f6c0157005c58/src/algorithms/pss.rs#L205
-        let bits_to_mask = 8 * em_len - em_bits;
+        let bits_to_mask = 8 - (8 * em_len - em_bits);
         let mask_value = pow(2, bits_to_mask as u32);
-        let max_allowed_value = 255 / mask_value;
-        assert(masked_db[0] as u32 <= max_allowed_value);
+        assert_eq(masked_db[0] as u32 / mask_value, 0);
 
         // Generate dbMask using MGF1
-        let db_mask:[u8; NumBytes] = mgf1_sha256(h);
+        let db_mask:[u8; NumBytes - 33] = mgf1_sha256(h);
 
         // Compute DB = maskedDB xor dbMask
-        let mut db = [0 as u8; NumBytes];
+        let mut db = [0 as u8; NumBytes - 33];
         for i in 0..db_mask_len {
             db[i] = masked_db[i] ^ db_mask[i];
         }
