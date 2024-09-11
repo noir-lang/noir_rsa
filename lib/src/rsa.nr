@@ -176,10 +176,9 @@ impl<BN, BNInstance, let NumBytes: u32> RSA<BN, BNInstance, NumBytes>  where BN:
         // Mask the leftmost bits
         let bits_to_mask = 8 * em_len - em_bits;
         let mask = 0xFF >> bits_to_mask as u8;
-        let first_byte = masked_db[offset];
         // Make sure the 8 * em_len - em_bits leftmost bits are 0
         // c.f. https://github.com/RustCrypto/RSA/blob/aeedb5adf5297892fcb9e11f7c0f6c0157005c58/src/algorithms/pss.rs#L205
-        assert((first_byte & !mask) == 0);
+        assert((masked_db[0] & !mask) == 0);
 
         // Generate dbMask using MGF1
         let db_mask:[u8; 223] = mgf1_sha256(h);
