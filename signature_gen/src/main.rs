@@ -45,7 +45,7 @@ fn generate_2048_bit_signature_parameters(msg: &str, as_toml: bool, pss: bool) {
         .join(", ");
 
     let mut rng: rand::prelude::ThreadRng = rand::thread_rng();
-    let bits: usize = 2048;
+    let bits: usize = 1025;
     let priv_key: RsaPrivateKey =
         RsaPrivateKey::new(&mut rng, bits).expect("failed to generate a key");
     let pub_key: RsaPublicKey = priv_key.clone().into();
@@ -61,18 +61,18 @@ fn generate_2048_bit_signature_parameters(msg: &str, as_toml: bool, pss: bool) {
 
     let sig_uint: BigUint = BigUint::from_bytes_be(&sig_bytes);
 
-    let sig_str = bn_limbs(sig_uint.clone(), 2048);
+    let sig_str = bn_limbs(sig_uint.clone(), 1025);
 
-    let modulus_limbs: Vec<BigUint> = split_into_120_bit_limbs(&pub_key.n().clone(), 2048);
+    let modulus_limbs: Vec<BigUint> = split_into_120_bit_limbs(&pub_key.n().clone(), 1025);
     let redc_param = split_into_120_bit_limbs(
         &compute_barrett_reduction_parameter(&pub_key.n().clone()),
-        2048,
+        1025,
     );
 
     if as_toml {
         let hash_toml = toml::to_vec(&hashed_as_bytes).unwrap();
 
-        let sig_limbs = split_into_120_bit_limbs(&sig_uint.clone(), 2048);
+        let sig_limbs = split_into_120_bit_limbs(&sig_uint.clone(), 1025);
         let signature_toml = Value::Array(format_limbs_as_toml_value(&sig_limbs));
 
         let bn = Value::Array(vec![

@@ -3,7 +3,10 @@ use dep::bignum::runtime_bignum::BigNumInstance;
 use dep::bignum::runtime_bignum::BigNumTrait;
 use dep::bignum::runtime_bignum::BigNumInstanceTrait;
 use dep::bignum::runtime_bignum::BigNumParamsTrait;
-use crate::types::{RSA, BN1024, BN2048, BNInst1024, BNInst2048, RSA1024, RSA2048, BN1964, BNInst1964, RSA1964};
+use crate::types::{
+    RSA, BN1024, BN2048, BNInst1024, BNInst2048, RSA1024, RSA2048, BN1025, BNInst1025, RSA1025, BN1964,
+    BNInst1964, RSA1964
+};
 
 global HASH_LEN: u32 = 32;
 
@@ -162,11 +165,12 @@ impl<BN, BNInstance, let NumBytes: u32> RSA<BN, BNInstance, NumBytes>  where BN:
         assert_eq(em[em.len() - 1], 0xBC);
 
         let db_mask_len = em_len - h_len - 1;
-        // This offset is necessary for key sizes not divisible by 8
-        // Will equal 0 for key sizes divisible by 8
-        let offset = em.len() - key_len;
+        // In some rare cases, em_len is not equal to key_len (e.g. 1025 bit RSA)
+        // In this case, we'll have a leading zero byte in em that we need to ignore
+        // c.f. https://github.com/RustCrypto/RSA/blob/aeedb5adf5297892fcb9e11f7c0f6c0157005c58/src/algorithms/pss.rs#L242
+        let offset = key_len - em_len;
         // 256 - 32 - 1 = 223
-        // As hash is 32 bytes and we also remove the 0xBC at the end, we have 223 bytes left for DB
+        // As hash is 32 bytes and we also remove the 0xBC at the end, we have up to 223 bytes left for DB
         let masked_db: [u8; 223] = get_array_slice(em, offset, db_mask_len + offset);
         let h = get_array_slice(em, db_mask_len + offset, em.len() - 1);
 
@@ -325,7 +329,7 @@ fn test_verify_sha256_pss_2048() {
     assert(rsa.verify_sha256_pss(BNInstance, sha256_hash, signature, 2048));
 }
 
-// The following test is using an unusual key size to test an edge case for key size not divisible by 8
+// Test an unusual key length that is not a multiple of 8
 #[test]
 fn test_verify_sha256_pss_1964() {
     let sha256_hash: [u8; 32] = dep::std::hash::sha256("Hello World! This is Noir-RSA".as_bytes());
@@ -345,4 +349,26 @@ fn test_verify_sha256_pss_1964() {
 
     let rsa: RSA1964 = RSA {};
     assert(rsa.verify_sha256_pss(BNInstance, sha256_hash, signature, 1964));
+}
+
+// Test an edge case where the key length in bytes is greater than the encoded message length
+#[test]
+fn test_verify_sha256_pss_1025() {
+    let sha256_hash: [u8; 32] = dep::std::hash::sha256("Hello World! This is Noir-RSA".as_bytes());
+    let BNInstance: BNInst1025 = BigNumInstance::new(
+        [
+        0xaf85e53c4a91594f53511cd0e31935, 0x3f1a6f7232de53b8e8f075b6a3255a, 0x5d0f4f309b50b941e81b9d9d7e0364, 0x62a7e60f9aebbcd2db80809794b70f, 0xf24315c4e69e164e614c80f80dc4e2, 0x473400e641fb7a6b7a501242aa6815, 0xe730eb24ffe6e87bccf85e1e51de5d, 0x7ef4a0642a5c91a8a1aace977a0de7, 0x19e161fb03d331727
+    ],
+        [
+        0x3d7911a3b192c0efffc574af224d4, 0xb494691ec48cdd2431e652bc6c74d7, 0x6b834607b80ce1f23ced01292df8af, 0x5a9936397b92b1802bc92a8165f1a7, 0x6392a3c0de8280cabbc562ce47c90b, 0x80b65d80217ffd1325d40ba739d70e, 0xa8810d2055f941b137eb21f9b58c3c, 0x6220993e32e55cda527741114bf51a, 0x27910dff60925c592
+    ]
+    );
+    let signature: BN1025 = BigNum::from_array(
+        [
+        0x577f3f0b0fb8562169a0e15bd1c464, 0x67fecee7f7b7a447cbf37113604abb, 0x2955ac083854e3c3df1bd086b282c5, 0xe04c2e7d863e232e8499b334b85b4f, 0x7401d581dd3982d024bbfea9006084, 0x6a72f4117c02af92da185dbd0ce150, 0x34ec364bca2403037e52322cbc798e, 0xf3f8efbb3fb4eff880d9ae565e64fe, 0x57e81dd84359d0f2
+    ]
+    );
+
+    let rsa: RSA1025 = RSA {};
+    assert(rsa.verify_sha256_pss(BNInstance, sha256_hash, signature, 1025));
 }
