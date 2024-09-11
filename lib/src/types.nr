@@ -22,4 +22,4 @@ type BNInst1964 = BigNumInstance<17, Params1964>;
 
 type RSA1024 = RSA<BN1024, BNInst1024, 128>;
 type RSA2048 = RSA<BN2048, BNInst2048, 256>;
-type RSA1964 = RSA<BN1964, BNInst1964, 255>;
+type RSA1964 = RSA<BN1964, BNInst1964, 246>;

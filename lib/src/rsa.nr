@@ -16,6 +16,7 @@ fn reverse_array<let N: u32>(array: [u8; N]) -> [u8; N] {
 }
 
 fn get_array_slice<let N: u32, let M: u32>(array: [u8; N], start: u32, end: u32) -> [u8; M] {
+    assert(end - start <= M);
     let mut slice = [0 as u8; M];
     for i in 0..M {
         if i < end - start {
@@ -23,6 +24,14 @@ fn get_array_slice<let N: u32, let M: u32>(array: [u8; N], start: u32, end: u32)
         }
     }
     slice
+}
+
+fn pow(base: u32, exp: u32) -> u32 {
+    let mut result = 1;
+    for _ in 0..exp {
+        result *= base;
+    }
+    result
 }
 
 /**
@@ -128,21 +137,9 @@ impl<BN, BNInstance, let NumBytes: u32> RSA<BN, BNInstance, NumBytes>  where BN:
     ) -> bool {
         // Exponentiate the signature assuming e = 65537
         let mut exponentiated = instance.mul(sig, sig);
-        exponentiated = instance.mul(exponentiated, exponentiated);
-        exponentiated = instance.mul(exponentiated, exponentiated);
-        exponentiated = instance.mul(exponentiated, exponentiated);
-        exponentiated = instance.mul(exponentiated, exponentiated);
-        exponentiated = instance.mul(exponentiated, exponentiated);
-        exponentiated = instance.mul(exponentiated, exponentiated);
-        exponentiated = instance.mul(exponentiated, exponentiated);
-        exponentiated = instance.mul(exponentiated, exponentiated);
-        exponentiated = instance.mul(exponentiated, exponentiated);
-        exponentiated = instance.mul(exponentiated, exponentiated);
-        exponentiated = instance.mul(exponentiated, exponentiated);
-        exponentiated = instance.mul(exponentiated, exponentiated);
-        exponentiated = instance.mul(exponentiated, exponentiated);
-        exponentiated = instance.mul(exponentiated, exponentiated);
-        exponentiated = instance.mul(exponentiated, exponentiated);
+        for _ in 0..15 {
+            exponentiated = instance.mul(exponentiated, exponentiated);
+        }
         exponentiated = instance.mul(exponentiated, sig);
         // Convert the exponentiated signature to a byte array and reverse it to 
         // get it in big endian order, which is much easier to work with for 
@@ -162,7 +159,7 @@ impl<BN, BNInstance, let NumBytes: u32> RSA<BN, BNInstance, NumBytes>  where BN:
         assert(em_len >= h_len + s_len + 2);
 
         // Check if eM ends with 0xBC
-        assert(em[em.len() - 1] == 0xBC);
+        assert_eq(em[em.len() - 1], 0xBC);
 
         let db_mask_len = em_len - h_len - 1;
         // This offset is necessary for key sizes not divisible by 8
@@ -173,12 +170,12 @@ impl<BN, BNInstance, let NumBytes: u32> RSA<BN, BNInstance, NumBytes>  where BN:
         let masked_db: [u8; 223] = get_array_slice(em, offset, db_mask_len + offset);
         let h = get_array_slice(em, db_mask_len + offset, em.len() - 1);
 
-        // Mask the leftmost bits
-        let bits_to_mask = 8 * em_len - em_bits;
-        let mask = 0xFF >> bits_to_mask as u8;
         // Make sure the 8 * em_len - em_bits leftmost bits are 0
         // c.f. https://github.com/RustCrypto/RSA/blob/aeedb5adf5297892fcb9e11f7c0f6c0157005c58/src/algorithms/pss.rs#L205
-        assert((masked_db[0] & !mask) == 0);
+        let bits_to_mask = 8 * em_len - em_bits;
+        let mask_value = pow(2, bits_to_mask as u32);
+        let max_allowed_value = 255 / mask_value;
+        assert(masked_db[0] as u32 <= max_allowed_value);
 
         // Generate dbMask using MGF1
         let db_mask:[u8; 223] = mgf1_sha256(h);
@@ -194,11 +191,11 @@ impl<BN, BNInstance, let NumBytes: u32> RSA<BN, BNInstance, NumBytes>  where BN:
 
         // Check if the leftmost octets of DB are zero
         for i in 0..(em_len - h_len - s_len - 2) {
-            assert(db[i] == 0);
+            assert_eq(db[i], 0);
         }
 
-        // Check if the octet at position emLen - hLen - sLen - 2 is 0x01
-        assert(db[em_len - h_len - s_len - 2] == 0x01);
+        // Check if the octet at position emLen - hLen - sLen - 2 is 1
+        assert_eq(db[em_len - h_len - s_len - 2], 1);
 
         // Extract salt
         let salt: [u8; 32] = get_array_slice(db, db_mask_len - s_len, db_mask_len);
