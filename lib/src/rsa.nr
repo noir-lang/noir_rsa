@@ -5,7 +5,7 @@ use dep::bignum::runtime_bignum::BigNumInstanceTrait;
 use dep::bignum::runtime_bignum::BigNumParamsTrait;
 use crate::types::{
     RSA, BN1024, BN2048, BNInst1024, BNInst2048, RSA1024, RSA2048, BN1025, BNInst1025, RSA1025, BN1964,
-    BNInst1964, RSA1964
+    BNInst1964, RSA1964, BN4096, BNInst4096, RSA4096
 };
 
 global HASH_LEN: u32 = 32;
@@ -169,9 +169,12 @@ impl<BN, BNInstance, let NumBytes: u32> RSA<BN, BNInstance, NumBytes>  where BN:
         // In this case, we'll have a leading zero byte in em that we need to ignore
         // c.f. https://github.com/RustCrypto/RSA/blob/aeedb5adf5297892fcb9e11f7c0f6c0157005c58/src/algorithms/pss.rs#L242
         let offset = key_len - em_len;
-        // 256 - 32 - 1 = 223
-        // As hash is 32 bytes and we also remove the 0xBC at the end, we have up to 223 bytes left for DB
-        let masked_db: [u8; 223] = get_array_slice(em, offset, db_mask_len + offset);
+        // 512 - 32 - 1 = 479
+        // As hash is 32 bytes and we also remove the 0xBC at the end, we have up to 479 bytes left for DB
+        // 512 accounts for key sizes up to 4096 bits (generally the maximum used)
+        // Hopefully one day we can be a bit more flexible like so:
+        // let masked_db: [u8; NumBytes - 32 - 1] = get_array_slice(em, offset, db_mask_len + offset);
+        let masked_db: [u8; 479] = get_array_slice(em, offset, db_mask_len + offset);
         let h = get_array_slice(em, db_mask_len + offset, em.len() - 1);
 
         // Make sure the 8 * em_len - em_bits leftmost bits are 0
@@ -182,10 +185,10 @@ impl<BN, BNInstance, let NumBytes: u32> RSA<BN, BNInstance, NumBytes>  where BN:
         assert(masked_db[0] as u32 <= max_allowed_value);
 
         // Generate dbMask using MGF1
-        let db_mask:[u8; 223] = mgf1_sha256(h);
+        let db_mask:[u8; 479] = mgf1_sha256(h);
 
         // Compute DB = maskedDB xor dbMask
-        let mut db = [0 as u8; 223];
+        let mut db = [0 as u8; 479];
         for i in 0..db_mask_len {
             db[i] = masked_db[i] ^ db_mask[i];
         }
@@ -327,6 +330,27 @@ fn test_verify_sha256_pss_2048() {
 
     let rsa: RSA2048 = RSA {};
     assert(rsa.verify_sha256_pss(BNInstance, sha256_hash, signature, 2048));
+}
+
+#[test]
+fn test_verify_sha256_pss_4096() {
+    let sha256_hash: [u8; 32] = dep::std::hash::sha256("Hello World! This is Noir-RSA".as_bytes());
+    let BNInstance: BNInst4096 = BigNumInstance::new(
+        [
+        0x172c834a6c2cb4f31cc7da80a6d4ff, 0x3633ac0b04176a7f16148924521b56, 0x94c82f8234b93e3cbca4de38be10, 0x8e89f65add2f6157d5484d396f7a07, 0x4552316deadc8a8453db1f2a5159a, 0x1139cd8f8560a6d2b03d55f0f28571, 0x74769b23449c8205a41e74127ba49c, 0x651d03683409bb671e5d74f8dab10f, 0xc35e8201ddceba963a91d882e69237, 0xc6635b7cc5369183677acb3618921f, 0xa058599e7196ea42d2729280108a37, 0xea79254e2521cf42489bbe3bdf4b59, 0x629214b33b173ac358db741b90c667, 0xd3396ad57619c601094d5e08ea181, 0xa583d1fa64979e18b53de89c678b52, 0xd86de4089ded807f28d92207bba1e8, 0x8f5bc7f249e84c2552c703e3a9d0fc, 0x8a9b1691456d7f9bd99d7855334db8, 0x57e44689db0d6ed82a4e166fa28485, 0xadf0dcebe17500c30b9edc2641520c, 0x243a0946b38a0862e9a400893c9827, 0x66ebc31eaf407031839967a4899c6d, 0xf2781a383e2d42d1e075f765b20596, 0xc19b52bb49364a3a56951912dcaf50, 0x360c4f265bbf79090e4dac2d449fa8, 0xc5196e0564a34b49bc490dd612d0b7, 0xcbc03557aa82584fddf791b590356c, 0xd36c22792441df5da9ddfaa6f79112, 0xb7faff9d1562a975d75ae8a4491036, 0xfe86a124b5a6fe5fd8940d46722445, 0xeeb6ad4b659197f5df7612f48b0694, 0x513b467ad6395fb05c99e7a9a066ad, 0x85e1b3835c3a04db1ce1ccab4feaa9, 0x18f03e52dd2f7f414769d14ff43457, 0xc716
+    ],
+        [
+        0x9c3983c7c603ff128f131c61d3c71b, 0x2cc551814d00618b18789cd422d7dd, 0x4dbf02faeac0b4552091c7478e3ea9, 0x4a848f7a35e9296becc65f09f28041, 0xb5830f01768ae16d97c52a270ec5ef, 0x66e85db157060f7edf8e6f68accf6a, 0xae57871783d80ee70fbd14a9f4ad17, 0x754fa2fc322ab5973d85c954988bda, 0xc7151e7b2795b798fc150ab3dbacda, 0xe82ba5ecf13121aa2a9b8dbd8a68c7, 0x1ea267a29f40b4609b79d88cc2aa7c, 0x90af60e6176adf65813655cf152d5, 0x114ed1348379358e75347ab58f021, 0x701128fe95074c62750f2ca4df489a, 0xc5b02fe16f2a521c05f31e06547e97, 0xae7612cb115ce25e052a544d941977, 0x29b3c3dff2000d2f5240316eb6d99e, 0x3dff26cf76af256b2f8ae869327ec5, 0x4826c0fe245faaa15b5976ab4266c7, 0x1e43eee79212f02c2ff01de3d95a73, 0x1513ebcbdadf6acc2cce1f6d8436d8, 0x165aa074631832bdd1a1cfb65842c9, 0xdfac592ddcc24d1705d9a0d0b90982, 0xc2398daf5362d927c7138eea76df19, 0xba6644ba19668aaeef6e6d323fa5c, 0xeebb9a7ad00dc8767794b6dff4fdaa, 0x6b57930afde8e2f1f63e01744d3565, 0x851c15dd79ca3381d2908c94826542, 0x731df26adb519307c801b84c1a816a, 0x67aafb51f23d3f0791f4b55397a141, 0xce08dfb26c5382ad6621eff091cfa3, 0xd8e12d533d7f5fddee9532a874817c, 0x98ff1339043d4ebd5c0a9b08b0c721, 0x10943f9a8dd91d2a80bf2e45e06d9c, 0x1492f
+    ]
+    );
+    let signature: BN4096 = BigNum::from_array(
+        [
+        0xac63ce14a64cd6a4b1f9659b26410b, 0x2a62d62e7d4413af3069c8fbddf5b0, 0xe17b8aee2ee89352eb6e9cb2bfe062, 0x17e844d0677907e149cd629559feb3, 0xc16074f86a1cf529d7d32a16b478ee, 0x7bbaea6accb92b0614cbbdc116efe8, 0xdea05ae4eb38a9f4cba514ed72ad18, 0x3fac6e2c09dd0e24483d88d941fbd5, 0x7645909bf765ffcab50cafa5ee437c, 0x6777f5a02029f5a0be50642edc360d, 0x6eeda2a036083a760ca77355694642, 0x4e0d0bef8f1f0cc1b37632e690d010, 0x5a81b80bafcb97374f0e0633716511, 0x3a0f822ad84f67a058c54e393c01f7, 0x62cc1dc3d45f6a51a47e033b8f5c15, 0x8e5cf5f214a5ce03563ccb3c2f2a04, 0xfe88463e315b818623f9c5470ed94f, 0x1a306b6f2391e9462d0e9a140629b2, 0x7c13e6dc02c5ea54f2c0dfd9c51c71, 0x60139d47ecb9331ce210492aed7a48, 0x024a4cc780f1c5eae1eb7ea58d46b6, 0x6d13a3e0f28d19ea0af8eedd7443ed, 0xd8ccd0d376f1fa28b19ac3a96dc039, 0x8527abd1dd1069bccd10ed4259d760, 0x2e62b482b2e4e44d11a0ff654d4fee, 0x65d4c5758c3f55bc17292659082163, 0x4e416cdaa103d4fe81f1df2ec11b1d, 0x7210cae86a9b2a7c9df3774fd58697, 0x7ca25424e38b9ce650140de93654f4, 0x3113e18f792ac55485403f1a5a210a, 0x394652d79237868c93c9267c6f08ab, 0x23fbb3ec2db7690ebf1f1b98499530, 0x649ebbd77bf42c4b560661d60ccc16, 0x9af7cae878f8ca65e568718ba20ef5, 0x2a98
+    ]
+    );
+
+    let rsa: RSA4096 = RSA {};
+    assert(rsa.verify_sha256_pss(BNInstance, sha256_hash, signature, 4096));
 }
 
 // Test an unusual key length that is not a multiple of 8
