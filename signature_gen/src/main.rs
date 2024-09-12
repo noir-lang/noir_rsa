@@ -31,7 +31,7 @@ fn format_limbs_as_toml_value(limbs: &Vec<BigUint>) -> Vec<Value> {
         .collect()
 }
 
-fn generate_2048_bit_signature_parameters(msg: &str, as_toml: bool) {
+fn generate_2048_bit_signature_parameters(msg: &str, as_toml: bool, exponent: u32) {
     let mut hasher = Sha256::new();
     hasher.update(msg.as_bytes());
     let hashed_message = hasher.finalize();
@@ -45,7 +45,7 @@ fn generate_2048_bit_signature_parameters(msg: &str, as_toml: bool) {
     let mut rng: rand::prelude::ThreadRng = rand::thread_rng();
     let bits: usize = 2048;
     let priv_key: RsaPrivateKey =
-        RsaPrivateKey::new(&mut rng, bits).expect("failed to generate a key");
+        RsaPrivateKey::new_with_exp(&mut rng, bits, &BigUint::from(exponent)).expect("failed to generate a key");
     let pub_key: RsaPublicKey = priv_key.clone().into();
 
     let signing_key = rsa::pkcs1v15::SigningKey::<Sha256>::new(priv_key);
@@ -108,12 +108,21 @@ fn main() {
                 .long("toml")
                 .help("Print output in TOML format"),
         )
+        .arg(
+            Arg::with_name("exponent")
+                .short("e")
+                .long("exponent")
+                .takes_value(true)
+                .help("Exponent to use for the key")
+                .default_value("65537"),
+        )
         .get_matches();
 
     let msg = matches.value_of("msg").unwrap();
     let as_toml = matches.is_present("toml");
+    let e: u32 = matches.value_of("exponent").unwrap().parse().unwrap();
 
-    generate_2048_bit_signature_parameters(msg, as_toml);
+    generate_2048_bit_signature_parameters(msg, as_toml, e);
 }
 
 fn test_signature_generation_impl() {
