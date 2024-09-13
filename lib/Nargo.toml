@@ -2,7 +2,7 @@
 name = "noir_rsa"
 type = "lib"
 authors = [""]
-compiler_version = ">=0.33.0"
+compiler_version = ">=0.34.0"
 
 [dependencies]
-bignum = {tag = "v0.3.0", git = "https://github.com/noir-lang/noir-bignum"}
+bignum = {tag = "v0.3.3", git = "https://github.com/noir-lang/noir-bignum"}

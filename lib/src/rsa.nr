@@ -224,30 +224,36 @@ impl<BN, BNInstance, let NumBytes: u32> RSA<BN, BNInstance, NumBytes>  where BN:
  *          when converting a BigNum into a byte array, the number of bytes is required and currently cannot be inferred.
  *          Once numeric generics can be derived by applying operations to other numeric generics the need for this will go away.
  *
- * @note We assume the public key exponent `e` is 65537 
+ * @note The exponent `e` can be either 65537 or 3 (i.e. the most common values in use for RSA)
  * Rough cost: 2,048 bit RSA: 26,888 gates per verification
  *             1,024 bit RSA: 11,983 gates per verification
  * A circuit that verifies 1 signature (and does nothing else) will cost ~32k due to initialization costs of lookup tables
  **/
-    pub fn verify_sha256_pkcs1v15(_: Self, instance: BNInstance, msg_hash: [u8; 32], sig: BN) -> bool {
-        // e = 65537 = 1 0000 0000 0000 0001
-        let mut exponentiated = instance.mul(sig, sig);
-        exponentiated = instance.mul(exponentiated, exponentiated);
-        exponentiated = instance.mul(exponentiated, exponentiated);
-        exponentiated = instance.mul(exponentiated, exponentiated);
-        exponentiated = instance.mul(exponentiated, exponentiated);
-        exponentiated = instance.mul(exponentiated, exponentiated);
-        exponentiated = instance.mul(exponentiated, exponentiated);
-        exponentiated = instance.mul(exponentiated, exponentiated);
-        exponentiated = instance.mul(exponentiated, exponentiated);
-        exponentiated = instance.mul(exponentiated, exponentiated);
-        exponentiated = instance.mul(exponentiated, exponentiated);
-        exponentiated = instance.mul(exponentiated, exponentiated);
-        exponentiated = instance.mul(exponentiated, exponentiated);
-        exponentiated = instance.mul(exponentiated, exponentiated);
-        exponentiated = instance.mul(exponentiated, exponentiated);
-        exponentiated = instance.mul(exponentiated, exponentiated);
-        exponentiated = instance.mul(exponentiated, sig);
+    pub fn verify_sha256_pkcs1v15(_: Self, instance: BNInstance, msg_hash: [u8; 32], sig: BN, exponent: u32) -> bool {
+        assert((exponent == 3) | (exponent == 65537), "Exponent must be 65537 or 3");
+        let mut exponentiated = instance.mul(sig, sig); // sig^2
+
+        if exponent == 65537 {
+            // e = 65537 = 1 0000 0000 0000 0001
+            exponentiated = instance.mul(exponentiated, exponentiated); // sig^2 * sig^2 = sig^4
+            exponentiated = instance.mul(exponentiated, exponentiated); // sig^8
+            exponentiated = instance.mul(exponentiated, exponentiated); // sig^16
+            exponentiated = instance.mul(exponentiated, exponentiated); // sig^32
+            exponentiated = instance.mul(exponentiated, exponentiated); // sig^64
+            exponentiated = instance.mul(exponentiated, exponentiated); // sig^128
+            exponentiated = instance.mul(exponentiated, exponentiated); // sig^256
+            exponentiated = instance.mul(exponentiated, exponentiated); // sig^512
+            exponentiated = instance.mul(exponentiated, exponentiated); // sig^1024
+            exponentiated = instance.mul(exponentiated, exponentiated); // sig^2048
+            exponentiated = instance.mul(exponentiated, exponentiated); // sig^4096
+            exponentiated = instance.mul(exponentiated, exponentiated); // sig^8192
+            exponentiated = instance.mul(exponentiated, exponentiated); // sig^16384
+            exponentiated = instance.mul(exponentiated, exponentiated); // sig^32768
+            exponentiated = instance.mul(exponentiated, exponentiated); // sig^65536
+        }
+        // otherwise, e = 3 = 11
+
+        exponentiated = instance.mul(exponentiated, sig); // either sig^2 * sig = sig^3 or sig^65536 * sig = sig^65537
 
         let mut padded_sha256_hash_bytes: [u8; NumBytes] = exponentiated.to_le_bytes();
         compare_signature_sha256(padded_sha256_hash_bytes, msg_hash)
@@ -273,7 +279,7 @@ fn test_verify_sha256_pkcs1v15_1024() {
     );
 
     let rsa: RSA1024 = RSA {};
-    assert(rsa.verify_sha256_pkcs1v15(BNInstance, sha256_hash, signature));
+    assert(rsa.verify_sha256_pkcs1v15(BNInstance, sha256_hash, signature, 65537));
 }
 
 #[test]
@@ -293,7 +299,30 @@ fn test_verify_sha256_pkcs1v15_2048() {
     ]
     );
     let rsa: RSA2048 = RSA {};
-    assert(rsa.verify_sha256_pkcs1v15(BNInstance, sha256_hash, signature));
+    assert(rsa.verify_sha256_pkcs1v15(BNInstance, sha256_hash, signature, 65537));
+}
+
+#[test]
+fn test_verify_sha256_pkcs1v15_2048_exponent_3() {
+    let sha256_hash: [u8; 32] = dep::std::hash::sha256("Hello World! This is Noir-RSA".as_bytes());
+
+    let BNInstance: BNInst2048 = BigNumInstance::new(
+        [
+        0xc6a1c5e80ce354c6b00ccf20cf3a1d, 0x178d135f925a03eceb25f79bab56ee, 0x13ab3d6d8a5c5586752b5a3bc74ec3, 0x3d13b47b152367e3e2fc014d03d19f, 0xe89a7278a2945b4a672011691db30f, 0x5b4c1b061378143629dbb29dea1e4, 0x26a48b6f4e8df1472fd4fc12b17c18, 0xc7c92ead0ce810520cf3a8267254c1, 0x806b8cdba93909e9d9a71ee1bcdac2, 0x703ef80f8eb703b84c201366dff1c7, 0x7361034bb2c4c081aad8b1bcca83de, 0xb23c7e1109e65e6d08fa72cc862008, 0x750bc927874455782cd2d6fd5a51f6, 0xf0b83665fbf8cb5cf31cee9f89848e, 0x20d447b08953c7ce3330197938a8ae, 0x11a08bb5a2241c6a2a69f930d8b28b, 0xef5bca8dd582570a44705cb123d09e, 0xb7
+    ],
+        [
+        0xbc93ee57c1c8adc53f0a995a6221ca, 0x2a9b43587534b20dd85a5233329f10, 0xc587fd488f64eed02adc1f462f7448, 0xf1484d37676bb0e800996757382522, 0xc2126c48221aa61c9f52c6b918bab3, 0x8660c861dd52ed958beaf6c6c2cff0, 0x5edd9dc4f02a000f350948c70bdf94, 0x6f3b9603149272e9b232a379a017bb, 0x950fd85cffbdf4476b1cb66c1f63d6, 0xee459417b1a56b6f7ef3b89e385ac, 0x48daeef6d1a055f3746ab71058e137, 0x3cbc0ba96d541feee92dd27f9d0306, 0x6a2a42384cc388fa113ee80317e0a0, 0x43b4f89c508a42d309f295c0d9f3a5, 0x8d8c28b05f71b962b40ea906ff407f, 0x390a7989eb9cecc5827cb00e1ca693, 0x4cbf158eabf7e96ef7f2586d0ce613, 0x164
+    ]
+    );
+
+    let signature: BN2048 = BigNum::from_array(
+        [
+        0x19772b9af8a031170a7844ce4f3d7c, 0x4808e817258f57805a7326f70bcd74, 0xca8f3f98e374d52100115bfa645a7d, 0x49547189edff3b683fee267e717b7f, 0x96f263b47e96925f3b5898a7389ceb, 0x4cc50a893da91d0e085fc6656b30bc, 0x67e84ff92d88c0ad2c17ad2701309e, 0x095326818578173289665fcd9ad788, 0x775c6e85b745065db9411b9d579763, 0xad0f20c8a5265dfca4080ca877a2b8, 0xbfd199372f1680b3bc583a08bd8ba9, 0x663476ca3e5ede3e5976887db2c4e5, 0x531192309d0d49fed47c0216c27f9e, 0x37d26d31c86b951ca1c17b517063b7, 0x3cdb362ed5dfd06568eb9a9bbb6a91, 0x14520b9c23f583314729a9d858bca9, 0x5e0505067ada1026721d45997bf2c4, 0x3e
+    ]
+    );
+
+    let rsa: RSA2048 = RSA {};
+    assert(rsa.verify_sha256_pkcs1v15(BNInstance, sha256_hash, signature, 3));
 }
 
 #[test]
