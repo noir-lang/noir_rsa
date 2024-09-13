@@ -2,49 +2,141 @@
 
 Optimized Noir library that evaluates RSA signatures.
 
-Uses https://github.com/zac-williamson/noir-bignum as a dependency.
+This library uses <https://github.com/noir-lang/noir-bignum> as a dependency.
 
-NOTE: library requires noir v 0.32.0 or later. If using the barretenberg backend, bb version of at least 0.46.1 is required (`bbup -v 0.46.1 `)
+## Benchmarks
 
-# Usage
+The benchmarking source code and its details can be found in [this repository](https://github.com/hashcloak/noir_rsa_bench).
+
+For the results, "UP" stands for UltraPlonk and "UH" stands for UltraHonk.
+
+The benchmark results for the verification of one signature are the following:
+
+| **Bit length** | **Circuit size** | **Avg. proving time (UP) [ms]**  | **Avg. proving time (UH) [ms]** | 
+|----------------|------------------|---------------------------------|--------------------------------------|
+|           1024 |             2204 |                           234.8 |                             181 |
+|           2048 |             7131 |                           345.6 |                           261.9 |
+
+Also, the results for the verification of 10 signatures are the following:
+
+| **Bit length** | **Circuit size** | **Avg. proving time (UP) [ms]** | **Avg. proving time (UH) [ms]** |
+|----------------|------------------|---------------------------------|--------------------------------------|
+|           1024 |            21516 |                           970.9 |                           514.4 |   
+|           2048 |            63821 |                          1801.7 |                           964.2 |
+
+The benchmarks were executed using a laptop with Intel(R) Core(TM) i7-13700H CPU and 32 GB of RAM.
+
+## Dependencies
+
+- Noir ≥v0.32.0
+- Barretenberg ≥v0.46.1
+
+Refer to [Noir's docs](https://noir-lang.org/docs/getting_started/installation/) and [Barretenberg's docs](https://github.com/AztecProtocol/aztec-packages/blob/master/barretenberg/cpp/src/barretenberg/bb/readme.md#installation) for installation steps.
+
+## Installation
+
+In your _Nargo.toml_ file, add the version of this library you would like to install under dependency:
+
+```
+[dependencies]
+noir_rsa = { tag = "v0.2", git = "https://github.com/noir-lang/noir_rsa" }
+```
+
+## Usage
 
 See tests in `lib.nr` for examples.
 
-To construct a `BigNumInstance` objects, both the bignum modulus (the public key) and a Barrett reduction parameter are required as arrays of Field elements, with each element representing a 120-bit slice of the number.
+## End-to-end example
 
-See `signature_gen/src/main.rs` for how these parameters can be derived. The rust crate `noir-bignum-paramgen` contains both libraries and an executable that performs this formatting (https://crates.io/crates/noir-bignum-paramgen).
+### Generate RSA signature
 
-## Example Use
+To verify an RSA signature, you first need a signature.
 
-See tests in `lib.nr` for additional examples. The `pubkey_redc_param` parameter can be derived via the `noir-bignum-paramgen` tool and provided as a witness via Prover.toml
+Depending on the application you are building, you might be expecting user signatures from existing signing services (e.g. emails, passports, git commits), or you might be building the ability for users to sign directly in your application.
 
-```rust
-    use dep::noir_rsa::bignum::BigNum;
-    use dep::noir_rsa::bignum::runtime_bignum::BigNumInstance;
-    use dep::noir_rsa::bignum::fields::Params2048;
-    use dep::noir_rsa::RSA;
+Either way, you are free to choose how you collect / generate the signatures as long as they comply with the PKCS#1 v1.5 RSA cryptography specifications (ex. by following <https://docs.rs/rsa/latest/rsa/#pkcs1-v15-signatures>).
 
-    type BN2048 = BigNum<18, Params2048>;
-    type BNInstance = BigNumInstance<18, Params2048>;
-    type RSA2048 = RSA<BN2048, BNInstance, 256>;
+You need to install Rustup and run it in order to install Rust:
 
-    fn verify_signature(pubkey: [u8; 256], signature: [u8; 256], pubkey_redc_param: BN2048)
-        let sha256_hash: [u8; 32] = dep::std::hash::sha256("hello world".as_bytes());
-        let modulus: BN2048 = BigNum::from_byte_be(pubkey);
-        let signature: BN2048 = BigNum::from_byte_be(signature);
-
-        let instance: BNInstance = BigNumInstance::new(modulus, pubkey_redc_param);
-
-        let rsa: RSA2048 = RSA {};
-        assert(rsa.verify_sha256_pkcs1v15(BNInstance, sha256_hash, signature));
-    }
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+rustup
 ```
 
-# Costs
+Then clone this repo, move into the `signature_gen` folder, and run `cargo run`, optionally with the message to sign:
 
-Rough cost:
+```bash
+cd signature_gen
+cargo run # or cargo run -- --msg "hello world!"
+```
 
-- 2,048 bit RSA: 26,888 gates per verification
-- 1,024 bit RSA: 11,983 gates per verification
+The program prints the hash of the message, the RSA signature, and the BigNumber instance you should use. These are parsed to a compatible format, ready to be used in the Noir RSA library.
 
-A circuit that verifies 1 signature (and does nothing else) will cost ~32k due to initialization costs of lookup tables
+#### Use it in your Noir test
+
+Move into the `example` folder. Replace the hardcoded values with result of the previous step. Since you know the size of your key, you can import those types from the rsa lib:
+
+```diff
+-    let hash: [u8; 32] = etc...
+-    let signature: BN2048 = etc...
+-    let bn = etc...
++    let hash: [u8; 32] = paste from terminal...
++    let signature: BN2048 = paste from terminal...
++    let bn = paste from terminal...
+```
+
+Run the test:
+
+```bash
+nargo test
+```
+
+#### Prove it
+
+Run `nargo check` to initialize `Prover.toml`:
+
+```bash
+nargo check
+```
+
+Run the same `cargo` command, but with the `--toml` flag:
+
+```bash
+cargo run -- --msg "hello world!" --toml
+```
+
+Copy and paste it to Prover.toml. Example:
+
+```toml
+bn = [
+    [
+        "0xcba7415fa9d2192d5cdac144f95f75",
+        "0x2b46305b91eeed9e9a992076172b46",
+        "0x76c9e6e0a407e67bc0a3ee276927d7",
+        "0x0d0eaa3b10ab266755ea20c44619f6",
+        "0x4b040e9ab1acb761b1ab9a60309ee4",
+        "...etc"
+    ]
+]
+```
+
+Then execute it, and prove it i.e. with barretenberg:
+
+```bash
+nargo execute rsa
+bb prove -b ./target/example.json -w ./target/rsa.gz -o ./target/proof
+```
+
+### Verify it
+
+To verify, we need to export the verification key:
+
+```bash
+bb write_vk -b ./target/example.json -o ./target/vk
+```
+
+And verify:
+
+```bash
+bb verify -k ./target/vk -p ./target/proof
+```

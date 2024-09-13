@@ -1,0 +1,8 @@
+[package]
+name = "noir_rsa"
+type = "lib"
+authors = [""]
+compiler_version = ">=0.34.0"
+
+[dependencies]
+bignum = {tag = "v0.3.3", git = "https://github.com/noir-lang/noir-bignum"}
