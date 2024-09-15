@@ -28,10 +28,7 @@ The benchmarks were executed using a laptop with Intel(R) Core(TM) i7-13700H CPU
 
 ## Dependencies
 
-- Noir ≥v0.32.0
-- Barretenberg ≥v0.46.1
-
-Refer to [Noir's docs](https://noir-lang.org/docs/getting_started/installation/) and [Barretenberg's docs](https://github.com/AztecProtocol/aztec-packages/blob/master/barretenberg/cpp/src/barretenberg/bb/readme.md#installation) for installation steps.
+`noir_rsa` requires Noir ≥v0.34.0. Refer to [Noir's docs](https://noir-lang.org/docs/getting_started/installation/) for installation steps.
 
 ## Installation
 
@@ -39,7 +36,7 @@ In your _Nargo.toml_ file, add the version of this library you would like to ins
 
 ```
 [dependencies]
-noir_rsa = { tag = "v0.2", git = "https://github.com/noir-lang/noir_rsa" }
+noir_rsa = { tag = "v0.3.3", git = "https://github.com/noir-lang/noir_rsa" }
 ```
 
 ## Usage
