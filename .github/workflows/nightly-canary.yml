@@ -25,6 +25,7 @@ jobs:
           toolchain: nightly
 
       - name: Run Noir tests
+        working-directory: ./lib
         run: nargo test
 
       - name: Run formatter
