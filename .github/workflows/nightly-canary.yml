@@ -25,11 +25,9 @@ jobs:
           toolchain: nightly
 
       - name: Run Noir tests
-        working-directory: ./lib
         run: nargo test
 
       - name: Run formatter
-        working-directory: ./lib
         run: nargo fmt --check
 
       - name: Alert on dead canary
