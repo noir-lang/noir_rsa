@@ -27,7 +27,6 @@ jobs:
           toolchain: ${{ matrix.toolchain }}
 
       - name: Run Noir tests
-        working-directory: ./lib      
         run: nargo test
 
   format:
@@ -42,5 +41,4 @@ jobs:
           toolchain: 0.34.0
 
       - name: Run formatter
-        working-directory: ./lib
         run: nargo fmt --check
