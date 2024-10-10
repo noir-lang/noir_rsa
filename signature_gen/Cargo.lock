@@ -365,9 +365,9 @@ checksum = "78b3ae25bc7c8c38cec158d1f2757ee79e9b3740fbc7ccf0e59e4b08d793fa89"
 
 [[package]]
 name = "noir-bignum-paramgen"
-version = "0.1.2"
+version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0a43fd3a1f0f710170fff345afe74d77dd9a58c944ef79d9ad94360b18b7e07a"
+checksum = "6058cb4c50e0df6fb01d014f71bf63bcd50fa63c1ce827329dc34d74c6b7807f"
 dependencies = [
  "hex",
  "itoa",

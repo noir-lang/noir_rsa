@@ -88,6 +88,67 @@ fn generate_2048_bit_signature_parameters(msg: &str, as_toml: bool, exponent: u3
     }
 }
 
+
+fn generate_1024_bit_signature_parameters(msg: &str, as_toml: bool, exponent: u32) {
+    let mut hasher = Sha256::new();
+    hasher.update(msg.as_bytes());
+    let hashed_message = hasher.finalize();
+
+    let hashed_as_bytes = hashed_message
+        .iter()
+        .map(|&b| b.to_string())
+        .collect::<Vec<String>>()
+        .join(", ");
+
+    let mut rng: rand::prelude::ThreadRng = rand::thread_rng();
+    let bits: usize = 1024;
+    let priv_key: RsaPrivateKey =
+        RsaPrivateKey::new_with_exp(&mut rng, bits, &BigUint::from(exponent))
+            .expect("failed to generate a key");
+    let pub_key: RsaPublicKey = priv_key.clone().into();
+
+    let signing_key = rsa::pkcs1v15::SigningKey::<Sha256>::new(priv_key);
+    let sig: Vec<u8> = signing_key.sign(msg.as_bytes()).to_vec();
+
+    let sig_bytes = &Signature::try_from(sig.as_slice()).unwrap().to_bytes();
+
+    let sig_uint: BigUint = BigUint::from_bytes_be(sig_bytes);
+
+    let sig_str = bn_limbs(sig_uint.clone(), 1024);
+
+    let modulus_limbs: Vec<BigUint> = split_into_120_bit_limbs(&pub_key.n().clone(), 1024);
+    let redc_param = split_into_120_bit_limbs(
+        &compute_barrett_reduction_parameter(&pub_key.n().clone()),
+        1024,
+    );
+
+    if as_toml {
+        let sig_limbs = split_into_120_bit_limbs(&sig_uint.clone(), 1024);
+        let signature_toml = Value::Array(format_limbs_as_toml_value(&sig_limbs));
+
+        let bn = Value::Array(vec![
+            Value::Array(format_limbs_as_toml_value(&modulus_limbs)),
+            Value::Array(format_limbs_as_toml_value(&redc_param)),
+        ]);
+        let bn_toml = toml::to_string_pretty(&bn).unwrap();
+        println!("bn = {}", bn_toml);
+        println!("hash = [{}]", hashed_as_bytes);
+        println!("[signature]");
+        println!("limbs = {}", signature_toml);
+    } else {
+        println!("let hash: [u8; 32] = [{}];", hashed_as_bytes);
+        println!(
+            "let signature: BN1024 = BigNum::from_array({});",
+            sig_str.as_str()
+        );
+        println!(
+            "let bn = [\n    [{}],\n    [{}]\n];",
+            format_limbs_as_hex(&modulus_limbs),
+            format_limbs_as_hex(&redc_param)
+        );
+    }
+}
+
 fn main() {
     let matches = App::new("RSA Signature Generator")
         .arg(
@@ -112,13 +173,29 @@ fn main() {
                 .help("Exponent to use for the key")
                 .default_value("65537"),
         )
+        .arg(
+            Arg::with_name("bits")
+            .short("b")
+            .long("bits")
+        .takes_value(true)
+        .help("Number of bits of RSA signature (1024 or 2048")
+        .default_value("2048")
+        )
         .get_matches();
 
     let msg = matches.value_of("msg").unwrap();
     let as_toml = matches.is_present("toml");
     let e: u32 = matches.value_of("exponent").unwrap().parse().unwrap();
-
-    generate_2048_bit_signature_parameters(msg, as_toml, e);
+    let b: u32 = matches.value_of("bits").unwrap().parse().unwrap();
+    assert!(b == 1024 || b == 2048, "Number of bits of RSA signature can only be 1024 or 2048");
+    if b == 1024
+    {
+        generate_1024_bit_signature_parameters(msg, as_toml, e);
+    }
+    else
+    {
+        generate_2048_bit_signature_parameters(msg, as_toml, e);
+    }
 }
 
 #[cfg(test)]
