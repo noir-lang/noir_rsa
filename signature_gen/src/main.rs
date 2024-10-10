@@ -88,7 +88,6 @@ fn generate_2048_bit_signature_parameters(msg: &str, as_toml: bool, exponent: u3
     }
 }
 
-
 fn generate_1024_bit_signature_parameters(msg: &str, as_toml: bool, exponent: u32) {
     let mut hasher = Sha256::new();
     hasher.update(msg.as_bytes());
@@ -175,11 +174,11 @@ fn main() {
         )
         .arg(
             Arg::with_name("bits")
-            .short("b")
-            .long("bits")
-        .takes_value(true)
-        .help("Number of bits of RSA signature (1024 or 2048")
-        .default_value("2048")
+                .short("b")
+                .long("bits")
+                .takes_value(true)
+                .help("Number of bits of RSA signature (1024 or 2048")
+                .default_value("2048"),
         )
         .get_matches();
 
@@ -187,13 +186,13 @@ fn main() {
     let as_toml = matches.is_present("toml");
     let e: u32 = matches.value_of("exponent").unwrap().parse().unwrap();
     let b: u32 = matches.value_of("bits").unwrap().parse().unwrap();
-    assert!(b == 1024 || b == 2048, "Number of bits of RSA signature can only be 1024 or 2048");
-    if b == 1024
-    {
+    assert!(
+        b == 1024 || b == 2048,
+        "Number of bits of RSA signature can only be 1024 or 2048"
+    );
+    if b == 1024 {
         generate_1024_bit_signature_parameters(msg, as_toml, e);
-    }
-    else
-    {
+    } else {
         generate_2048_bit_signature_parameters(msg, as_toml, e);
     }
 }
