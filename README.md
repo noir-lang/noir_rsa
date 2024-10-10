@@ -28,7 +28,7 @@ The benchmarks were executed using a laptop with Intel(R) Core(TM) i7-13700H CPU
 
 ## Dependencies
 
-`noir_rsa` requires Noir ≥v0.34.0. Refer to [Noir's docs](https://noir-lang.org/docs/getting_started/installation/) for installation steps.
+`noir_rsa` requires Noir ≥v0.35.0. Refer to [Noir's docs](https://noir-lang.org/docs/getting_started/installation/) for installation steps.
 
 ## Installation
 
