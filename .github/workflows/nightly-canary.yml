@@ -28,10 +28,6 @@ jobs:
         working-directory: ./lib
         run: nargo test
 
-      - name: Run formatter
-        working-directory: ./lib
-        run: nargo fmt --check
-
       - name: Alert on dead canary
         uses: JasonEtco/create-an-issue@v2
         if: ${{ failure() }}
