@@ -1,1 +1,1 @@
-nargo compile --force && bb gates -b ./target/noir_rsa.json
+(cd example && nargo compile --force --silence-warnings && bb gates -b ./target/example.json | grep "circuit")
