@@ -77,13 +77,13 @@ fn generate_2048_bit_signature_parameters(msg: &str, as_toml: bool, exponent: u3
     } else {
         println!("let hash: [u8; 32] = [{}];", hashed_as_bytes);
         println!(
-            "let signature: BN2048 = BigNum::from_array({});",
-            sig_str.as_str()
-        );
-        println!(
-            "let bn = [\n    [{}],\n    [{}]\n];",
+            "let params: BigNumParams<18, 2048> = BigNumParams::new(\n\tfalse,\n\t[{}],\n\t[{}]\n);",
             format_limbs_as_hex(&modulus_limbs),
             format_limbs_as_hex(&redc_param)
+        );
+        println!(
+            "let signature: RuntimeBigNum<18, 2048> = RuntimeBigNum::from_array(\n\tparams,\n\tlimbs: {}\n);",
+            sig_str.as_str()
         );
     }
 }
@@ -135,15 +135,14 @@ fn generate_1024_bit_signature_parameters(msg: &str, as_toml: bool, exponent: u3
         println!("[signature]");
         println!("limbs = {}", signature_toml);
     } else {
-        println!("let hash: [u8; 32] = [{}];", hashed_as_bytes);
         println!(
-            "let signature: BN1024 = BigNum::from_array({});",
-            sig_str.as_str()
-        );
-        println!(
-            "let bn = [\n    [{}],\n    [{}]\n];",
+            "let params: BigNumParams<9, 1024> = BigNumParams::new(\n\tfalse,\n\t[{}],\n\t[{}]\n);",
             format_limbs_as_hex(&modulus_limbs),
             format_limbs_as_hex(&redc_param)
+        );
+        println!(
+            "let signature: RuntimeBigNum<9, 1024> = RuntimeBigNum::from_array(\n\tparams,\n\tlimbs: {}\n);",
+            sig_str.as_str()
         );
     }
 }
