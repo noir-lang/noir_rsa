@@ -98,14 +98,10 @@ fn test_main() {
     let hash: [u8; 32] = dep::std::hash::sha256("hello world".as_bytes());
 
     /* COMMENT-OUT ONE OF THESE CALLS TO `main`. */
-
     /* ATTEMPT 1 */
-
-   // This will work after https://github.com/noir-lang/noir/pull/6450
-//    main(hash, signature);
-
+    // This will work after https://github.com/noir-lang/noir/pull/6450
+    //    main(hash, signature);
     /* ATTEMPT 2 */
-
     // This succeeds:
     let params_tuple: (bool, [Field; 18], [Field; 18]) =
         (has_multiplicative_inverse, modulus_limbs, redc_limbs);

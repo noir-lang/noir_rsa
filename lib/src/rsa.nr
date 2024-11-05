@@ -1,4 +1,4 @@
-use dep::bignum::{ RuntimeBigNum, params::BigNumParams };
+use dep::bignum::{RuntimeBigNum, params::BigNumParams};
 
 /**
  * @brief Compare a recovered byte hash from an RSA signature to the original message hash
