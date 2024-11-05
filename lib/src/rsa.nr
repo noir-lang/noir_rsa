@@ -24,13 +24,13 @@ fn compare_signature_sha256<let N: u32>(padded_sha256_hash: [u8; N], msg_hash: [
     // Sub 32 bytes for hash, 19 bytes for prefix, 1 byte for 0, 1 byte for 1, 1 byte for 0
     let ps_len = N - 54;
     for i in 52..N {
-        if i as u32 < 52 + ps_len as u32 {
+        if i < 52 + ps_len {
             // PS padding which depends on RSA modulus / sig length. 1024 bits = 128 bytes = 128 - 54 = 74 bytes of 0xFF padding
             assert(padded_sha256_hash[i] == 255);
-        } else if i as u32 == 52 + ps_len as u32 {
+        } else if i == 52 + ps_len {
             // Pad 0x01
             assert(padded_sha256_hash[i] == 1);
-        } else if i as u32 == 53 + ps_len as u32 {
+        } else if i == 53 + ps_len {
             // 0x00
             assert(padded_sha256_hash[i] == 0);
         } else {
