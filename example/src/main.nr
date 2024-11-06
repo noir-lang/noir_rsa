@@ -2,25 +2,9 @@ use dep::bignum::params::BigNumParams;
 use dep::bignum::RuntimeBigNum;
 
 use dep::rsa::rsa::verify_sha256_pkcs1v15;
-use dep::rsa::types::RBN2048; // Used if we can solve the error described in comments below.
+use dep::rsa::types::RBN2048;
 
-// This will work after https://github.com/noir-lang/noir/pull/6450
-// fn main(hash: [u8; 32], signature: RBN2048) {
-//     assert(verify_sha256_pkcs1v15(hash, signature, 65537));
-// }
-
-// // Workaround to the above error: pass the signature and its params as arrays, instead of as a pretty RuntimeBigNum struct. Sad face.
-fn main(
-    hash: [u8; 32],
-    signature_limbs: [Field; 18],
-    params_tuple: (bool, [Field; 18], [Field; 18]),
-) {
-    // Ugly reconstitution of the params, until https://github.com/noir-lang/noir/pull/6450 is merged.
-    let params: BigNumParams<18, 2048> =
-        BigNumParams::new(params_tuple.0, params_tuple.1, params_tuple.2);
-
-    let signature = RuntimeBigNum::from_array(params, signature_limbs);
-
+fn main(hash: [u8; 32], signature: RBN2048) {
     assert(verify_sha256_pkcs1v15(hash, signature, 65537));
 }
 
@@ -97,14 +81,5 @@ fn test_main() {
     // Output of `cargo run -- --msg "hello world"` in the `signature_gen` directory
     let hash: [u8; 32] = dep::std::hash::sha256("hello world".as_bytes());
 
-    /* COMMENT-OUT ONE OF THESE CALLS TO `main`. */
-    /* ATTEMPT 1 */
-    // This will work after https://github.com/noir-lang/noir/pull/6450
-    //    main(hash, signature);
-    /* ATTEMPT 2 */
-    // This succeeds:
-    let params_tuple: (bool, [Field; 18], [Field; 18]) =
-        (has_multiplicative_inverse, modulus_limbs, redc_limbs);
-
-    main(hash, signature_limbs, params_tuple);
+    main(hash, signature);
 }
