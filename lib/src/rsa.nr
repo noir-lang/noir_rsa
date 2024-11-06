@@ -1,4 +1,4 @@
-use dep::bignum::{RuntimeBigNum, params::BigNumParams};
+use dep::bignum::{params::BigNumParams, RuntimeBigNum};
 
 /**
  * @brief Compare a recovered byte hash from an RSA signature to the original message hash
@@ -44,11 +44,7 @@ fn compare_signature_sha256<let N: u32>(padded_sha256_hash: [u8; N], msg_hash: [
 
 /**
  * @brief Verify an RSA signature generated via the pkcs1v15 signature scheme.
- * @details The fourth function parameter is required to define the value of `NBytes`
- *          when converting a BigNum into a byte array, the number of bytes is required and currently cannot be inferred.
- *          Once numeric generics can be derived by applying operations to other numeric generics the need for this will go away.
- *
- * @note The exponent `e` can be either 65537 or 3 (i.e. the most common values in use for RSA)
+ * @note The `exponent` can be either 65537 or 3 (i.e. the most common values in use for RSA)
  * Rough cost: 2,048 bit RSA: 26,888 gates per verification
  *             1,024 bit RSA: 11,983 gates per verification
  * A circuit that verifies 1 signature (and does nothing else) will cost ~32k due to initialization costs of lookup tables

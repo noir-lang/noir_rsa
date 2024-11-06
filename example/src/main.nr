@@ -1,8 +1,5 @@
-use dep::bignum::params::BigNumParams;
-use dep::bignum::RuntimeBigNum;
-
-use dep::rsa::rsa::verify_sha256_pkcs1v15;
-use dep::rsa::types::RBN2048;
+use dep::bignum::{params::BigNumParams, RuntimeBigNum};
+use dep::rsa::{rsa::verify_sha256_pkcs1v15, types::RBN2048};
 
 fn main(hash: [u8; 32], signature: RBN2048) {
     assert(verify_sha256_pkcs1v15(hash, signature, 65537));
