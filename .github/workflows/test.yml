@@ -30,6 +30,10 @@ jobs:
         working-directory: ./lib      
         run: nargo test
 
+      - name: Run example project
+        working-directory: ./example     
+        run: nargo execute
+
   format:
     runs-on: ubuntu-latest
     steps:
@@ -43,6 +47,10 @@ jobs:
 
       - name: Run formatter
         working-directory: ./lib
+        run: nargo fmt --check
+
+      - name: Run formatter on example
+        working-directory: ./example
         run: nargo fmt --check
 
   # This is a job which depends on all test jobs and reports the overall status.
