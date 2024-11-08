@@ -56,30 +56,33 @@ fn generate_2048_bit_signature_parameters(msg: &str, as_toml: bool, exponent: u3
     let sig_str = bn_limbs(sig_uint.clone(), 2048);
 
     let modulus_limbs: Vec<BigUint> = split_into_120_bit_limbs(&pub_key.n().clone(), 2048);
-    let redc_param = split_into_120_bit_limbs(
+    let redc_limbs = split_into_120_bit_limbs(
         &compute_barrett_reduction_parameter(&pub_key.n().clone()),
         2048,
     );
 
     if as_toml {
         let sig_limbs = split_into_120_bit_limbs(&sig_uint.clone(), 2048);
-        let signature_toml = Value::Array(format_limbs_as_toml_value(&sig_limbs));
 
-        let bn = Value::Array(vec![
-            Value::Array(format_limbs_as_toml_value(&modulus_limbs)),
-            Value::Array(format_limbs_as_toml_value(&redc_param)),
-        ]);
-        let bn_toml = toml::to_string_pretty(&bn).unwrap();
-        println!("bn = {}", bn_toml);
         println!("hash = [{}]", hashed_as_bytes);
-        println!("[signature]");
-        println!("limbs = {}", signature_toml);
+        println!(
+            "modulus_limbs = {}",
+            Value::Array(format_limbs_as_toml_value(&modulus_limbs))
+        );
+        println!(
+            "redc_limbs = {}",
+            Value::Array(format_limbs_as_toml_value(&redc_limbs))
+        );
+        println!(
+            "signature_limbs = {}",
+            Value::Array(format_limbs_as_toml_value(&sig_limbs))
+        );
     } else {
         println!("let hash: [u8; 32] = [{}];", hashed_as_bytes);
         println!(
             "let params: BigNumParams<18, 2048> = BigNumParams::new(\n\tfalse,\n\t[{}],\n\t[{}]\n);",
             format_limbs_as_hex(&modulus_limbs),
-            format_limbs_as_hex(&redc_param)
+            format_limbs_as_hex(&redc_limbs)
         );
         println!(
             "let signature: RuntimeBigNum<18, 2048> = RuntimeBigNum::from_array(\n\tparams,\n\tlimbs: {}\n);",
@@ -116,29 +119,32 @@ fn generate_1024_bit_signature_parameters(msg: &str, as_toml: bool, exponent: u3
     let sig_str = bn_limbs(sig_uint.clone(), 1024);
 
     let modulus_limbs: Vec<BigUint> = split_into_120_bit_limbs(&pub_key.n().clone(), 1024);
-    let redc_param = split_into_120_bit_limbs(
+    let redc_limbs = split_into_120_bit_limbs(
         &compute_barrett_reduction_parameter(&pub_key.n().clone()),
         1024,
     );
 
     if as_toml {
         let sig_limbs = split_into_120_bit_limbs(&sig_uint.clone(), 1024);
-        let signature_toml = Value::Array(format_limbs_as_toml_value(&sig_limbs));
 
-        let bn = Value::Array(vec![
-            Value::Array(format_limbs_as_toml_value(&modulus_limbs)),
-            Value::Array(format_limbs_as_toml_value(&redc_param)),
-        ]);
-        let bn_toml = toml::to_string_pretty(&bn).unwrap();
-        println!("bn = {}", bn_toml);
         println!("hash = [{}]", hashed_as_bytes);
-        println!("[signature]");
-        println!("limbs = {}", signature_toml);
+        println!(
+            "modulus_limbs = {}",
+            Value::Array(format_limbs_as_toml_value(&modulus_limbs))
+        );
+        println!(
+            "redc_limbs = {}",
+            Value::Array(format_limbs_as_toml_value(&redc_limbs))
+        );
+        println!(
+            "signature_limbs = {}",
+            Value::Array(format_limbs_as_toml_value(&sig_limbs))
+        );
     } else {
         println!(
             "let params: BigNumParams<9, 1024> = BigNumParams::new(\n\tfalse,\n\t[{}],\n\t[{}]\n);",
             format_limbs_as_hex(&modulus_limbs),
-            format_limbs_as_hex(&redc_param)
+            format_limbs_as_hex(&redc_limbs)
         );
         println!(
             "let signature: RuntimeBigNum<9, 1024> = RuntimeBigNum::from_array(\n\tparams,\n\tlimbs: {}\n);",

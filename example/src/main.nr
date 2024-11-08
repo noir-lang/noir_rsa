@@ -1,14 +1,31 @@
 use dep::bignum::{params::BigNumParams, RuntimeBigNum};
 use dep::rsa::{rsa::verify_sha256_pkcs1v15, types::RBN2048};
 
-fn main(hash: [u8; 32], signature: RBN2048) {
+// Examples of the signature limbs, modulus, and redc params can be generated via
+// ../../signature_gen/main.rs.
+// Note: technically, the `signature` could've been passed into `main` directly,
+// for a much cleaner interface.
+// The reason we chose this more verbose approach here, was to reduce the amount of
+// data to generate for the Prover.toml file.
+fn main(
+    hash: [u8; 32],
+    signature_limbs: [Field; 18],
+    modulus_limbs: [Field; 18],
+    redc_limbs: [Field; 18],
+) {
+    let has_multiplicative_inverse = false;
+    let params: BigNumParams<18, 2048> =
+        BigNumParams::new(has_multiplicative_inverse, modulus_limbs, redc_limbs);
+
+    let signature: RBN2048 = RuntimeBigNum::from_array(params, signature_limbs);
+
     assert(verify_sha256_pkcs1v15(hash, signature, 65537));
 }
 
 #[test]
 fn test_main() {
+    // Output of `cargo run -- --msg "hello world"` in the `signature_gen` directory
     // Create runtime params:
-    let has_multiplicative_inverse = true;
     let modulus_limbs = [
         0x65af46d235241cf0e8fbe8cff4abb7,
         0xeead39ba3f377ddd5ccb2ef2085190,
@@ -49,8 +66,6 @@ fn test_main() {
         0xbe4fe7cf98da87ec87638030797e92,
         0x1619,
     ];
-    let params: BigNumParams<18, 2048> =
-        BigNumParams::new(has_multiplicative_inverse, modulus_limbs, redc_limbs);
 
     let signature_limbs = [
         0x2f397c4611d4a4271453e1e50e1578,
@@ -73,10 +88,7 @@ fn test_main() {
         0x26,
     ];
 
-    let signature: RBN2048 = RuntimeBigNum::from_array(params, signature_limbs);
-
-    // Output of `cargo run -- --msg "hello world"` in the `signature_gen` directory
     let hash: [u8; 32] = dep::std::hash::sha256("hello world".as_bytes());
 
-    main(hash, signature);
+    main(hash, signature_limbs, modulus_limbs, redc_limbs);
 }
