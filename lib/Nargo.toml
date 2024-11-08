@@ -5,6 +5,4 @@ authors = [""]
 compiler_version = ">=0.36.0"
 
 [dependencies]
-# bignum = {tag = "v0.4.0", git = "https://github.com/noir-lang/noir-bignum"}
-bignum = {tag = "main", git = "https://github.com/noir-lang/noir-bignum"}
-# bignum = {path = "../../noir-bignum"}
+bignum = {tag = "v0.4.1", git = "https://github.com/noir-lang/noir-bignum"}
