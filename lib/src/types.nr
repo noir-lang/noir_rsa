@@ -1,13 +1,7 @@
-use dep::bignum::BigNum;
-use dep::bignum::fields::{Params1024, Params2048};
-use dep::bignum::runtime_bignum::BigNumInstance;
+use dep::bignum::RuntimeBigNum;
 
-pub struct RSA<BN, BNInstance, let NumBytes: u32> {}
-
-pub(crate) type BN1024 = BigNum<9, Params1024>;
-pub(crate) type BN2048 = BigNum<18, Params2048>;
-pub(crate) type BNInst1024 = BigNumInstance<9, Params1024>;
-pub(crate) type BNInst2048 = BigNumInstance<18, Params2048>;
-
-pub(crate) type RSA1024 = RSA<BN1024, BNInst1024, 128>;
-pub(crate) type RSA2048 = RSA<BN2048, BNInst2048, 256>;
+pub type RBN1024 = RuntimeBigNum<9, 1024>;
+pub type RBN1025 = RuntimeBigNum<9, 1025>;
+pub type RBN1964 = RuntimeBigNum<17, 1946>;
+pub type RBN2048 = RuntimeBigNum<18, 2048>;
+pub type RBN4096 = RuntimeBigNum<35, 4096>;

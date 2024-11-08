@@ -1,7 +1,4 @@
-use dep::bignum::BigNum;
-use dep::bignum::runtime_bignum::{BigNumInstance, BigNumInstanceTrait, BigNumTrait};
-
-use crate::types::{BN1024, BN2048, BNInst1024, BNInst2048, RSA, RSA1024, RSA2048};
+use dep::bignum::{params::BigNumParams, RuntimeBigNum};
 
 /**
  * @brief Compare a recovered byte hash from an RSA signature to the original message hash
@@ -15,7 +12,8 @@ fn compare_signature_sha256<let N: u32>(padded_sha256_hash: [u8; N], msg_hash: [
         assert(padded_sha256_hash[31 - i] == msg_hash[i]);
     }
 
-    let hash_prefix: [u8; 19] = [32, 4, 0, 5, 1, 2, 4, 3, 101, 1, 72, 134, 96, 9, 6, 13, 48, 49, 48];
+    let hash_prefix: [u8; 19] =
+        [32, 4, 0, 5, 1, 2, 4, 3, 101, 1, 72, 134, 96, 9, 6, 13, 48, 49, 48];
 
     for i in 32..51 {
         assert(hash_prefix[i - 32] == padded_sha256_hash[i]);
@@ -43,237 +41,262 @@ fn compare_signature_sha256<let N: u32>(padded_sha256_hash: [u8; N], msg_hash: [
 
     true
 }
-impl<BN, BNInstance, let NumBytes: u32> RSA<BN, BNInstance, NumBytes>
-where
-    BN: BigNumTrait,
-    BNInstance: BigNumInstanceTrait<BN>, {
-    /// Verify an RSA signature generated via the pkcs1v15 signature scheme.
-    ///
-    /// The fourth function parameter is required to define the value of `NBytes`
-    /// when converting a BigNum into a byte array, the number of bytes is required and currently cannot be inferred.
-    /// Once numeric generics can be derived by applying operations to other numeric generics the need for this will go away.
-    ///
-    /// The exponent `e` can be either 65537 or 3 (i.e. the most common values in use for RSA)
-    ///
-    /// Rough cost: 2,048 bit RSA: 26,888 gates per verification
-    ///             1,024 bit RSA: 11,983 gates per verification
-    /// A circuit that verifies 1 signature (and does nothing else) will cost ~32k due to initialization costs of lookup tables
-    pub fn verify_sha256_pkcs1v15(_: Self, instance: BNInstance, msg_hash: [u8; 32], sig: BN, exponent: u32) -> bool {
-        assert((exponent == 3) | (exponent == 65537), "Exponent must be 65537 or 3");
-        let mut exponentiated = instance.mul(sig, sig); // sig^2
-        if exponent == 65537 {
-            // e = 65537 = 1 0000 0000 0000 0001
-            exponentiated = instance.mul(exponentiated, exponentiated); // sig^2 * sig^2 = sig^4
-            exponentiated = instance.mul(exponentiated, exponentiated); // sig^8
-            exponentiated = instance.mul(exponentiated, exponentiated); // sig^16
-            exponentiated = instance.mul(exponentiated, exponentiated); // sig^32
-            exponentiated = instance.mul(exponentiated, exponentiated); // sig^64
-            exponentiated = instance.mul(exponentiated, exponentiated); // sig^128
-            exponentiated = instance.mul(exponentiated, exponentiated); // sig^256
-            exponentiated = instance.mul(exponentiated, exponentiated); // sig^512
-            exponentiated = instance.mul(exponentiated, exponentiated); // sig^1024
-            exponentiated = instance.mul(exponentiated, exponentiated); // sig^2048
-            exponentiated = instance.mul(exponentiated, exponentiated); // sig^4096
-            exponentiated = instance.mul(exponentiated, exponentiated); // sig^8192
-            exponentiated = instance.mul(exponentiated, exponentiated); // sig^16384
-            exponentiated = instance.mul(exponentiated, exponentiated); // sig^32768
-            exponentiated = instance.mul(exponentiated, exponentiated); // sig^65536
-        }
-        // otherwise, e = 3 = 11
-        exponentiated = instance.mul(exponentiated, sig); // either sig^2 * sig = sig^3 or sig^65536 * sig = sig^65537
-        let mut padded_sha256_hash_bytes: [u8; NumBytes] = exponentiated.to_le_bytes();
-        compare_signature_sha256(padded_sha256_hash_bytes, msg_hash)
+
+/**
+ * @brief Verify an RSA signature generated via the pkcs1v15 signature scheme.
+ * @note The `exponent` can be either 65537 or 3 (i.e. the most common values in use for RSA)
+ * Rough cost: 2,048 bit RSA: 26,888 gates per verification
+ *             1,024 bit RSA: 11,983 gates per verification
+ * A circuit that verifies 1 signature (and does nothing else) will cost ~32k due to initialization costs of lookup tables
+ **/
+pub fn verify_sha256_pkcs1v15<let NumLimbs: u32, let ModBits: u32>(
+    msg_hash: [u8; 32],
+    sig: RuntimeBigNum<NumLimbs, ModBits>,
+    exponent: u32,
+) -> bool {
+    assert((exponent == 3) | (exponent == 65537), "Exponent must be 65537 or 3");
+    let mut exponentiated = sig * sig; // sig^2
+    if exponent == 65537 {
+        // e = 65537 = 1 0000 0000 0000 0001
+        exponentiated = exponentiated * exponentiated; // sig^4
+        exponentiated = exponentiated * exponentiated; // sig^8
+        exponentiated = exponentiated * exponentiated; // sig^16
+        exponentiated = exponentiated * exponentiated; // sig^32
+        exponentiated = exponentiated * exponentiated; // sig^64
+        exponentiated = exponentiated * exponentiated; // sig^128
+        exponentiated = exponentiated * exponentiated; // sig^256
+        exponentiated = exponentiated * exponentiated; // sig^512
+        exponentiated = exponentiated * exponentiated; // sig^1024
+        exponentiated = exponentiated * exponentiated; // sig^2048
+        exponentiated = exponentiated * exponentiated; // sig^4096
+        exponentiated = exponentiated * exponentiated; // sig^8192
+        exponentiated = exponentiated * exponentiated; // sig^16384
+        exponentiated = exponentiated * exponentiated; // sig^32768
+        exponentiated = exponentiated * exponentiated; // sig^65536
     }
+    // otherwise, e = 3 = 11
+    exponentiated = exponentiated * sig; // either sig^2 * sig = sig^3 or sig^65536 * sig = sig^65537
+    let mut padded_sha256_hash_bytes: [u8; (ModBits + 7) / 8] = exponentiated.to_le_bytes();
+    compare_signature_sha256(padded_sha256_hash_bytes, msg_hash)
 }
 
 #[test]
 fn test_verify_sha256_pkcs1v15_1024() {
+    // Output of `cargo run -- --msg "hello world! test#123" --bits 1024` in the `signature_gen` directory
     let sha256_hash: [u8; 32] = dep::std::hash::sha256("hello world! test#123".as_bytes());
-    let BNInstance: BNInst1024 = BigNumInstance::new(
-        [
-        0x483fd4238ca29c3a06f8161ee16faf,
-        0xf366b16a37c2db80d2977eab0ebbdc,
-        0x92ba4d77ff2425727ad38eea1cc2fe,
-        0x3fc50862a0e6afbcae13d5f85c220a,
-        0xe634dcea239a6a896597d4f75af455,
-        0x32e1448d1489bca56d983562715680,
-        0x1a81ef873140c0cfc191a44bfe6e88,
-        0x96066f4df0e14de07329df952aba45,
-        0xc2e161b4944381bb
-    ],
-        [
-        0x9c0b9f33d5b6960db5d70095a87724,
-        0xfb5245423548a808b8aee833d783b8,
-        0x790c0d7558b38dc24122455bf48f92,
-        0x39227725aaea9c83a99acf4b847682,
-        0xbd468a00b83cb026568150030eff3a,
-        0xcbb4f5cef905ca04f92f266e0493e8,
-        0xe19ad572a7bc2bb8168c81b0867c04,
-        0xbe2075bf10bc8a16725befb36d7f49,
-        0x15049cee2f37078121
-    ]
+    assert(
+        sha256_hash
+            == [
+                220, 155, 229, 143, 122, 133, 55, 215, 75, 44, 132, 111, 57, 33, 248, 84, 213, 170,
+                193, 96, 253, 57, 124, 13, 251, 42, 92, 147, 105, 172, 233, 85,
+            ],
     );
 
-    let signature: BN1024 = BigNum::from_array(
+    let params: BigNumParams<9, 1024> = BigNumParams::new(
+        false,
         [
-        0xe6fe1016893fed66550af77d706698,
-        0x9dd3b648afbbdb748ab97b4d609f0d,
-        0x83098d3b45c588c69c0e36ff9b210a,
-        0x5a793d529a382b34a491f68e4d959d,
-        0xa8c43b964794a4c11da2e57ef226df,
-        0x68654e3681728df9daff17a3b0bc66,
-        0x8aa4c9accfffae4fd5cd453c8c5335,
-        0x8b243f7074dacdcd869b94f3eef7fe,
-        0x3a8c12564704f5ad
-    ]
+            0xab238ad9cb37979a43aefbf10be8fb,
+            0x31347febe45fe8c2dac1dd30900704,
+            0xa5a9a6b9cd0cc2b9d13bbd4e068263,
+            0x5eac6390f7873fe97ff9bb14a173ea,
+            0xbc41f700c91fd733a2c63177bbdbd4,
+            0x41442bd58769a3595b659a2ec9c6be,
+            0x4ddc91395f330382aa2e2d3fbe147,
+            0x3d008ff255a0bc71c7887f5728ba1,
+            0xb640c3a8f511c64e,
+        ],
+        [
+            0x5d53d2634c6a0918266043968ce263,
+            0x5dd4be3dce0323a492ee9340aec4db,
+            0xf82d0e2e5c8319f01a460c72c01854,
+            0x236e6fc6e62e8a1d522acda5fb3892,
+            0xdaf755619d66e580901aa224d03174,
+            0x8366291616480e7e1f202dbcedda87,
+            0x40ba1202537d1e94561ccc05265586,
+            0x69b993d857ba89ea5de9822aeb4b93,
+            0x167968c0000761a273,
+        ],
     );
 
-    let rsa: RSA1024 = RSA {};
-    assert(rsa.verify_sha256_pkcs1v15(BNInstance, sha256_hash, signature, 65537));
+    let signature: RuntimeBigNum<9, 1024> = RuntimeBigNum {
+        params,
+        limbs: [
+            0xc3850e84ea02da3f028ff422f4d6a9,
+            0x9761f0bd9021f76d45c60df0670a19,
+            0xc1ede421a43607ab623ed4d5a17fc8,
+            0x86197b4315206f4d53200b42555831,
+            0xe95783b69db28c26a83706f39d04cd,
+            0x18b178dc1a9ec76fb22b57e4dfa703,
+            0xdd0e19cd5a09ab48e7af4d0e3470e3,
+            0x10004dfab1cf91304e80e6baa4dfc7,
+            0x241c3fd77b90adef,
+        ],
+    };
+
+    assert(verify_sha256_pkcs1v15(sha256_hash, signature, 65537));
 }
 
 #[test]
 fn test_verify_sha256_pkcs1v15_2048() {
+    // Output of `cargo run -- --msg "Hello World! This is Noir-RSA"` in the `signature_gen` directory
     let sha256_hash: [u8; 32] = dep::std::hash::sha256("Hello World! This is Noir-RSA".as_bytes());
-
-    let signature: BN2048 = BigNum::from_array(
-        [
-        0xad8c7c5ec9162b4769e0cfe5ebf840,
-        0x0d57cdde315319930d4e9eda1a7c1e,
-        0xafc455e0e01ef5a57160f0df8a786c,
-        0xbf1c1e64e91e316ec3ec02e68c23d6,
-        0x8df9a02bb6a52c932ad0d2832e33a6,
-        0xa3eacb4ebcb99a4a48be662698a9b8,
-        0x4fef3847f3e94050802ab50f29a01d,
-        0xa493fa7d68bd2b0d9e1a1d768053c0,
-        0x707d984f377f71262954eabd10e268,
-        0xfec30d40733948f36919b3ffa07366,
-        0xc9bf002b29ce6a860ba284a4426e34,
-        0xbc839ec24aad3c05a9aaccefca9e63,
-        0x07fe1918a7d98dd52e49e9d775461c,
-        0x098fdfe7d87d48732502814ee90808,
-        0x64de99868676d8b02d7b43b0474636,
-        0x27910e77bdc54ba42a4322a5ce8200,
-        0xc3b7b95e779c9a11895c88fe24bced,
-        0x96
-    ]
-    );
-    let BNInstance: BNInst2048 = BigNumInstance::new(
-        [
-        0x6d235ca5aab99a4c05ff2a03574427,
-        0xec267a6bbe7ffe4b6e8da9cf24897c,
-        0xcdaa2e64a6116d5bdf82460a108af3,
-        0xf6c184c2d2f4cc7ed3b7eaf28e257e,
-        0x7511d2771cdf315a07ba2e0058cb8b,
-        0x641d6eb5119b1b8e643eda5ade2dc3,
-        0xffc28bdb9f8f0ddc596675feae14fc,
-        0xcbc67f77f37393c3419a2340f859ad,
-        0x5cd500e0341275ce468e62db47107d,
-        0x3049eba2be3f9408f2c9ed2ae27d90,
-        0xc2f431dd169858ac5269d2512f4189,
-        0x36ace99a589959ea0425444cfb440d,
-        0x825fbf23e4e49a3b8f1fa714681f77,
-        0x8125cd82c2776832cf839ee1a9332c,
-        0xacbefb6a860c88ecbef30d52472137,
-        0x24166d0e0b434e207d4e8ecfd66cc9,
-        0x180955377f255f7bc29506fb45a8cb,
-        0xf7
-    ],
-        [
-        0xd08ee8d0e8ac5ce306aa570cfe1c05,
-        0xed045b877e042b6c144e6aa9cce044,
-        0x845096769616e1351bd198cb0938ae,
-        0xe4512a74991f500c166befa3c2f524,
-        0x81a05d9646ce1212d658399b5b566d,
-        0x1211121678c29a52c6d66eeca965b9,
-        0x93dfb350c2b86c8a2a2464cd84e03c,
-        0x9747aff06e0b9527bc5ad313c8173e,
-        0x1ca0a8eb7986c264406bf2a8752034,
-        0xe6abe17cf0f33ec2f655a85c027269,
-        0xd157b2f2739eec33b38908711b45df,
-        0xecc0246c32b828f0f603c9feea2daf,
-        0x76cb733ba6093e7fc2cfc29e07d7c4,
-        0x7c6f3519480fc9490894acf0c7087f,
-        0xb92c0644fa19196c5be9d142611269,
-        0x4db094df57cae1fa0bf4e8faec435b,
-        0xa2426a309776b8e5d0be5257586c59,
-        0x1093
-    ]
+    assert(
+        sha256_hash
+            == [
+                91, 207, 46, 60, 22, 153, 217, 144, 2, 127, 224, 143, 181, 45, 32, 120, 122, 131,
+                166, 79, 166, 183, 43, 158, 116, 105, 73, 207, 196, 77, 33, 5,
+            ],
     );
 
-    let rsa: RSA2048 = RSA {};
-    assert(rsa.verify_sha256_pkcs1v15(BNInstance, sha256_hash, signature, 65537));
+    let params: BigNumParams<18, 2048> = BigNumParams::new(
+        false,
+        [
+            0x8d5e7d9daedd6cfd1c9bdf0227e05b,
+            0xbfb937fc4d3cf02cc0af780f3cab44,
+            0xd20637ef7adcf5d238ee87bccc9bca,
+            0xb9db4f2663108e2f8b673f7612ae8b,
+            0x85f894ef669b36bfd3d86b0a28873,
+            0xdcc70e1884e38b8229cce3b884121d,
+            0x35488d1138e0b03e1676f7f5d8a5b3,
+            0xe1a97820e7dcbb4eab35c9b71bb273,
+            0x97d19eb3c63249ddbfcff915863f54,
+            0x3a78c7af6da0f6af0d67b1ca4b6065,
+            0xd7a3c433c020f624821e5e678c7d69,
+            0x52d5b53240feae82ffea3d2a3d9b09,
+            0xb8aad5e19e2163f68997c6fdd71906,
+            0x5db432d06e8b0bf59511100c7894e2,
+            0xadc0bbc4c54da10d1cc88438ea3127,
+            0xece1cf6a1501109cd2734d5893c8d9,
+            0x7196b90acdf06c31b1288064fd0c27,
+            0xc8,
+        ],
+        [
+            0x1b1deccf4dbde852c34a5d6908a0f,
+            0xbc9e5bdab22f023fbcca58692bccf5,
+            0x1f65439685623e45396ff55751c3bf,
+            0x2b6ad2c5f8e3aac15d0ccbab816bfa,
+            0x5ca2e8e3048243c16c708a8030ab0d,
+            0x30079bfeb1fa51e5501581173ca19c,
+            0xff8d5f6bea485fdcc2716327f69ab4,
+            0x36b599d81589416b5b5f037986b999,
+            0x75612e34a4ff29f0a19a7823512f58,
+            0x288b6897929b54c3b26a5faa07c00f,
+            0x4b5675fa13ab7444f1f047d3eb1bbe,
+            0x6ba0ac610ef9f267ab30fe25bb1c84,
+            0xa386b48ee03168d5cea3ecb9dc901f,
+            0xacf1a01f7dba44e050c976142fb1f6,
+            0x97a63b5cb7efc60d3502946aec63cf,
+            0x12cc1d5cab10a1e9e2398d29b9e3ef,
+            0x4635cf25c66e76bba8034df46204fb,
+            0x146f,
+        ],
+    );
+
+    let signature: RuntimeBigNum<18, 2048> = RuntimeBigNum {
+        params,
+        limbs: [
+            0xad29e07d16a278de49a371b9760a27,
+            0x86311920cc0e17a3c20cdff4c56dbb,
+            0x863556c6c5247dd83668dd825716ae,
+            0xc247c960945f4485b46c33b87425ca,
+            0x7326463c5c4cd5b08e21b938d9ed9a,
+            0x4f89fe0c82da08a0259eddb34d0da1,
+            0x43a74e76d4e1bd2666f1591889af0d,
+            0x240f7b80f0ff29f4253ee3019f832d,
+            0xc6edd131fbaaf725fd423dac52b362,
+            0x85f9732679242163e8afff44f6104d,
+            0xd3c3bbcb1757013fd6fb80f31dd9a6,
+            0x9008633f15df440e6df6d21ee585a2,
+            0x324df3425ed256e283be5b6b761741,
+            0xc60c1302929bd0e07caa4aeff4e8fd,
+            0x600d804ff13ba8d0e1bc9508714212,
+            0x50f7e75e5751d7edd61167027926be,
+            0x0db41d39442023e1420a8a84fe81d9,
+            0xab,
+        ],
+    };
+    assert(verify_sha256_pkcs1v15(sha256_hash, signature, 65537));
 }
 
 #[test]
 fn test_verify_sha256_pkcs1v15_2048_exponent_3() {
+    // Output of `cargo run -- --msg "hello world" -e 3` in the `signature_gen` directory
     let sha256_hash: [u8; 32] = dep::std::hash::sha256("hello world".as_bytes());
-
-    let signature: BN2048 = BigNum::from_array(
-        [
-        0xcd01362e23da8aa633cb5a0fb9808d,
-        0xd3be03e14b0c1eea086ef6aca3d51a,
-        0xc7bb806d6723bb12c95ce0e3bc5588,
-        0x05f9843f35688f97a88273cc30b661,
-        0x25679e918a53da7baa6840d660305c,
-        0xb89d2c648f85e1372ae090aa89e19c,
-        0xb90686c46e3c9be1e0f4006047bf5b,
-        0xd2d27921c3c5b8613d4fec51eb7045,
-        0xf5e86133acb02bd34dbac6805c5958,
-        0x84fe10899677d060461b0c3619dcfc,
-        0x8c9a26f5a68450509aca9d347f0d51,
-        0xccb9f4406f2c75407b871d39a06cb1,
-        0xcc95879813f3f90c64f7b5c21b3b0e,
-        0xc519654312dce978c9f368724d8c8f,
-        0x5ec258287e34b65bd13cb4c05381ae,
-        0xd8b5e5f82508cde542538a1973f37f,
-        0xe035ef2e15b18975521e6ff25072c0,
-        0x34
-    ]
-    );
-    let BNInstance: BNInst2048 = BigNumInstance::new(
-        [
-        0xea12ae77c634ac18e8914b0f112919,
-        0x7a385b52ed45602b3166e3006cab17,
-        0xce91edcb26009ae4ca5ec9032ace54,
-        0xec45aa323af9389e814dfa59e4e106,
-        0x50332220bbc7184b2b54c87acb79fb,
-        0x1fead59aea9260a545bb9b1e098753,
-        0xb362f1fc50b04e6581b34f97a769b5,
-        0x409c9d7b3a3ecb214e9dc5524e21a3,
-        0x88974631f1a1eed0c9d1fa6cc3c622,
-        0xadacc23ed4a6e2c0e968ad1da6e5b5,
-        0x480a5bbcc4e18d45937957d44adff2,
-        0x4d54fd4d3ab7ac249866b6aeaaf37f,
-        0x7eb6e94460e5dab5f15c55faf1bf5b,
-        0xc0bca2fb49828eb02a02cb3d95f48a,
-        0xeeb45b7149ee2bffe342120c8ef177,
-        0x9108e90248dfab616da128279b0391,
-        0xd446716c4e0be2123afd277a2cf8a7,
-        0xe5
-    ],
-        [
-        0x8653d918663eb92721c6efedf149e4,
-        0x3dbb26bf3a033499240fd8ef578107,
-        0x69a15f7a032e80ef1496b60b3b95ae,
-        0xc9aff3026bae96644fc904d80d3c0a,
-        0x4cb0ae9774e8045235dd864f81314f,
-        0x65c558cd398b18126e7f3788d196c6,
-        0x5d7cdb26a9343a94726693b0b5a6c6,
-        0x4b3cd2b0ef752aa26ba6a7fba6f795,
-        0x6632fa88182883e987e0db1bcaaaea,
-        0x38098156f929b4fda6d3026667b3a0,
-        0x5d5bee367212e64a7d1bd3307082a4,
-        0xf2622828a7f6e5d906388ec2aa850c,
-        0xacfdba93e953a71ce0a75f3f88c96f,
-        0xf8a2b79dfe7264e30b058d44747277,
-        0x8cf6a50c2e0723546a03d684e3fda,
-        0xc95e8eb25fe50e2ad34e494492abf,
-        0x6a078f758586eb4b1e60059a1826b1,
-        0x11d2
-    ]
+    assert(
+        sha256_hash
+            == [
+                185, 77, 39, 185, 147, 77, 62, 8, 165, 46, 82, 215, 218, 125, 171, 250, 196, 132,
+                239, 227, 122, 83, 128, 238, 144, 136, 247, 172, 226, 239, 205, 233,
+            ],
     );
 
-    let rsa: RSA2048 = RSA {};
-    assert(rsa.verify_sha256_pkcs1v15(BNInstance, sha256_hash, signature, 3));
+    let params: BigNumParams<18, 2048> = BigNumParams::new(
+        false,
+        [
+            0xe40ee47801326543c8e84b85d567c1,
+            0x5b54ea87f0ce29de1995697b0696fd,
+            0x457078f8fdce68b437cac0970b2452,
+            0x473ec776fee3731b6ab06e35875ddc,
+            0x62dedd594e5f12c80c3ccb5791a6cd,
+            0xecb934b9d8272c5e3a418145345499,
+            0xd1af643b3d785470ed0c6cd633f706,
+            0xb58a57b9e96eccbdfc7c17f0333d4,
+            0x2ebd34b5039fc596504927c282c60d,
+            0x3a44928a74f25fc1043bb37ce4dfa8,
+            0x91448459f9617fac33a2816162ac9e,
+            0x70cb910d9f3e1a78864640ec6c8240,
+            0x9aed33f6b31f1c9de67248a98c180,
+            0x7f1416e032c79488c94b311e87bd9c,
+            0x7191b4ebb1b3fffa949fa48ed01e5,
+            0x350a75cbaeca6bfdd71ca83cdbcae9,
+            0xfb1d274fa207457c6814d42c09f9cf,
+            0xd4,
+        ],
+        [
+            0x803bf4d38110a7d37fdd05f590dee9,
+            0xa68d317c933f37cab5ab4e7c00a3b9,
+            0x476a05a536bf5f2aa1b8850146cba7,
+            0xca297ea8b5528d91d4836ff27c30ab,
+            0x75cf2eaab76eefa12bbd570f1aea9f,
+            0x8f6a8ab877d9c5bcd98c37bdc5c2d3,
+            0xd497db1f6ebe83decacaa647fabea6,
+            0x686b27ca330e25e7a7cf197f6433ef,
+            0xfde04d2225c8308b07580af0058a0f,
+            0xa29fb69777c0e916976243b2b09855,
+            0xf983592285852e7e1c2cb3ae968323,
+            0x673608017f9f5acf67a01b73728d70,
+            0xeeff82521c0bc432a05f4b7444fac0,
+            0x85a89c4d229f60aaa3aa7ac7dac1e2,
+            0xcfecff93bc9fbfe0d6dff6091f2db8,
+            0xf20f047dcb224b4447bd098c07f8c2,
+            0x554bb53cadeb3eaab911a189f90227,
+            0x133b,
+        ],
+    );
+
+    let signature: RuntimeBigNum<18, 2048> = RuntimeBigNum {
+        params,
+        limbs: [
+            0xa250eff812c63eaaeaa3f04641c05f,
+            0xecc09613cb8b289c1f37c8f92e6a05,
+            0x2c0a0510058360c07af65d46f594fd,
+            0x943d67513363d3de430c94a1dafe7c,
+            0x511ec8e9b10bc6c6ff0d6c232ccf92,
+            0x50ffd07b3c093b3f5fc027de847731,
+            0xc268e1489449943fdafdf89ff168c3,
+            0x0b8b7f9f49b492f78fda58d252f23a,
+            0x491c6c4ef836a6a8730b7bf81e865e,
+            0x8746c75fb079d014e419543f56d7f0,
+            0x65804c417d6168a8bc0025d255cebf,
+            0xf695e91b77890b8e3fd775fa56e627,
+            0x5e90001c0218550f4083ae28025a2f,
+            0x526bd4eff34f25f62a698f0470e0a6,
+            0x7f224306a7d9daf536b1559434c6c6,
+            0x88809f16fe1fcea3c87511d9319735,
+            0x7694685fee0bfab4a9196b92ec6f2e,
+            0xa7,
+        ],
+    };
+
+    assert(verify_sha256_pkcs1v15(sha256_hash, signature, 3));
 }

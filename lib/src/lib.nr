@@ -1,2 +1,2 @@
-mod rsa;
-mod types;
+pub mod rsa;
+pub mod types;

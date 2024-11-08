@@ -2,8 +2,8 @@
 name = "example"
 type = "bin"
 authors = [""]
-compiler_version = ">=0.35.0"
+compiler_version = ">=0.36.0"
 
 [dependencies]
 rsa = { path = "../lib" }
-bignum = { tag = "v0.3.6", git = "https://github.com/noir-lang/noir-bignum" }
+bignum = { tag = "v0.4.1", git = "https://github.com/noir-lang/noir-bignum" }
