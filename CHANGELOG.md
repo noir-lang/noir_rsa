@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.1](https://github.com/noir-lang/noir_rsa/compare/v0.4.0...v0.4.1) (2024-12-04)
+
+
+### Features
+
+* Update to bignum `v0.4.2` ([#32](https://github.com/noir-lang/noir_rsa/issues/32)) ([536c436](https://github.com/noir-lang/noir_rsa/commit/536c436412240b3b53682d0898a35690327dc2dc))
+
 ## [0.4.0](https://github.com/noir-lang/noir_rsa/compare/v0.3.1...v0.4.0) (2024-11-08)
 
 
