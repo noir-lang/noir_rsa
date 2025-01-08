@@ -17,7 +17,7 @@ fn main(
     let params: BigNumParams<18, 2048> =
         BigNumParams::new(has_multiplicative_inverse, modulus_limbs, redc_limbs);
 
-    let signature: RBN2048 = RuntimeBigNum::from_array(params, signature_limbs);
+    let signature: RBN2048 = RBN2048::from_array(params, signature_limbs);
 
     assert(verify_sha256_pkcs1v15(hash, signature, 65537));
 }
