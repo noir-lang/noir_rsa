@@ -8,7 +8,8 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  MINIMUM_NOIR_VERSION: v0.36.0
+  # later bignum versions do not work with versions before v1.0.0-beta.0
+  MINIMUM_NOIR_VERSION: v1.0.0-beta.0
 
 jobs:
   noir-version-list:
