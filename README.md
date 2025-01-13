@@ -4,6 +4,10 @@ Optimized Noir library that evaluates RSA signatures.
 
 This library uses <https://github.com/noir-lang/noir-bignum> as a dependency.
 
+## Noir version compatibility
+
+This library is tested with all Noir stable releases from v1.0.0-beta.0.
+
 ## Benchmarks
 
 The benchmarking source code and its details can be found in [this repository](https://github.com/hashcloak/noir_rsa_bench).
@@ -25,10 +29,6 @@ Also, the results for the verification of 10 signatures are the following:
 |           2048 |            63821 |                          1801.7 |                           964.2 |
 
 The benchmarks were executed using a laptop with Intel(R) Core(TM) i7-13700H CPU and 32 GB of RAM.
-
-## Dependencies
-
-`noir_rsa` requires Noir ≥v0.35.0. Refer to [Noir's docs](https://noir-lang.org/docs/getting_started/installation/) for installation steps.
 
 ## Installation
 
