@@ -29,7 +29,7 @@ jobs:
         run: nargo compile
 
       - name: Generate gates report
-        run: ./scripts/build-gates-report.sh ./example/target
+        run: ./scripts/build-gates-report.sh ./example/target/
         env:
           BACKEND: /home/runner/.bb/bb
 
