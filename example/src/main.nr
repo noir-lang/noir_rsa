@@ -1,4 +1,4 @@
-use dep::bignum::{params::BigNumParams, RuntimeBigNum};
+use dep::bignum::{params::BigNumParams, runtime_bignum::RuntimeBigNumTrait};
 use dep::rsa::{rsa::verify_sha256_pkcs1v15, types::RBN2048};
 
 // Examples of the signature limbs, modulus, and redc params can be generated via
