@@ -5,7 +5,7 @@ BACKEND=${BACKEND:-bb}
 
 cd $(dirname "$0")/../
 
-artifacts_path=${$1:-"./export"}
+artifacts_path=${1:-"./export"}
 artifacts=$(ls $artifacts_path)
 
 echo "{\"programs\": [" > gates_report.json
