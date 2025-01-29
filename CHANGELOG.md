@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.1](https://github.com/noir-lang/noir_rsa/compare/v0.5.0...v0.5.1) (2025-01-29)
+
+
+### Features
+
+* Bump `bignum` to `v0.5.2` ([#43](https://github.com/noir-lang/noir_rsa/issues/43)) ([1000347](https://github.com/noir-lang/noir_rsa/commit/10003472e526e477aa433eff49410f4980e96db9))
+
 ## [0.5.0](https://github.com/noir-lang/noir_rsa/compare/v0.4.1...v0.5.0) (2025-01-09)
 
 
