@@ -1,4 +1,4 @@
-use dep::bignum::RuntimeBigNum;
+use bignum::RuntimeBigNum;
 
 pub type RBN1024 = RuntimeBigNum<9, 1024>;
 pub type RBN1025 = RuntimeBigNum<9, 1025>;

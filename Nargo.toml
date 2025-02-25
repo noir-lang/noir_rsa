@@ -1,6 +1,8 @@
-[workspace]
+[package]
+name = "noir_rsa"
+type = "lib"
+authors = [""]
+compiler_version = ">=1.0.0"
 
-members = [
-    "lib",
-    "example"
-]
+[dependencies]
+bignum = {tag = "v0.6.0", git = "https://github.com/noir-lang/noir-bignum"}
