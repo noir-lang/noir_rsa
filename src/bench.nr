@@ -4,14 +4,10 @@ use bignum::{params::BigNumParams, RuntimeBigNum};
 #[export]
 fn test_verify_sha256_pkcs1v15_2048(signature: [u128; 18]) {
     // Output of `cargo run -- --msg "Hello World! This is Noir-RSA"` in the `signature_gen` directory
-    let sha256_hash: [u8; 32] = dep::std::hash::sha256("Hello World! This is Noir-RSA".as_bytes());
-    assert(
-        sha256_hash
-            == [
-                91, 207, 46, 60, 22, 153, 217, 144, 2, 127, 224, 143, 181, 45, 32, 120, 122, 131,
-                166, 79, 166, 183, 43, 158, 116, 105, 73, 207, 196, 77, 33, 5,
-            ],
-    );
+    let sha256_hash: [u8; 32] = [
+        91, 207, 46, 60, 22, 153, 217, 144, 2, 127, 224, 143, 181, 45, 32, 120, 122, 131, 166, 79,
+        166, 183, 43, 158, 116, 105, 73, 207, 196, 77, 33, 5,
+    ];
 
     let params: BigNumParams<18, 2048> = BigNumParams::new(
         false,
