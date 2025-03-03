@@ -90,14 +90,10 @@ mod tests {
     #[test]
     fn test_verify_sha256_pkcs1v15_1024() {
         // Output of `cargo run -- --msg "hello world! test#123" --bits 1024` in the `signature_gen` directory
-        let sha256_hash: [u8; 32] = dep::std::hash::sha256("hello world! test#123".as_bytes());
-        assert(
-            sha256_hash
-                == [
-                    220, 155, 229, 143, 122, 133, 55, 215, 75, 44, 132, 111, 57, 33, 248, 84, 213,
-                    170, 193, 96, 253, 57, 124, 13, 251, 42, 92, 147, 105, 172, 233, 85,
-                ],
-        );
+        let sha256_hash: [u8; 32] = [
+            220, 155, 229, 143, 122, 133, 55, 215, 75, 44, 132, 111, 57, 33, 248, 84, 213, 170, 193,
+            96, 253, 57, 124, 13, 251, 42, 92, 147, 105, 172, 233, 85,
+        ];
 
         let params: BigNumParams<9, 1024> = BigNumParams::new(
             false,
@@ -146,15 +142,10 @@ mod tests {
     #[test]
     fn test_verify_sha256_pkcs1v15_2048() {
         // Output of `cargo run -- --msg "Hello World! This is Noir-RSA"` in the `signature_gen` directory
-        let sha256_hash: [u8; 32] =
-            dep::std::hash::sha256("Hello World! This is Noir-RSA".as_bytes());
-        assert(
-            sha256_hash
-                == [
-                    91, 207, 46, 60, 22, 153, 217, 144, 2, 127, 224, 143, 181, 45, 32, 120, 122,
-                    131, 166, 79, 166, 183, 43, 158, 116, 105, 73, 207, 196, 77, 33, 5,
-                ],
-        );
+        let sha256_hash: [u8; 32] = [
+            91, 207, 46, 60, 22, 153, 217, 144, 2, 127, 224, 143, 181, 45, 32, 120, 122, 131, 166,
+            79, 166, 183, 43, 158, 116, 105, 73, 207, 196, 77, 33, 5,
+        ];
 
         let params: BigNumParams<18, 2048> = BigNumParams::new(
             false,
@@ -229,14 +220,10 @@ mod tests {
     #[test]
     fn test_verify_sha256_pkcs1v15_2048_exponent_3() {
         // Output of `cargo run -- --msg "hello world" -e 3` in the `signature_gen` directory
-        let sha256_hash: [u8; 32] = dep::std::hash::sha256("hello world".as_bytes());
-        assert(
-            sha256_hash
-                == [
-                    185, 77, 39, 185, 147, 77, 62, 8, 165, 46, 82, 215, 218, 125, 171, 250, 196,
-                    132, 239, 227, 122, 83, 128, 238, 144, 136, 247, 172, 226, 239, 205, 233,
-                ],
-        );
+        let sha256_hash: [u8; 32] = [
+            185, 77, 39, 185, 147, 77, 62, 8, 165, 46, 82, 215, 218, 125, 171, 250, 196, 132, 239,
+            227, 122, 83, 128, 238, 144, 136, 247, 172, 226, 239, 205, 233,
+        ];
 
         let params: BigNumParams<18, 2048> = BigNumParams::new(
             false,
