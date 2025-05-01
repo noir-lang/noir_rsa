@@ -1,5 +1,8 @@
 # noir_rsa
 
+> [!IMPORTANT]  
+> This library is no longer being actively developed by the noir-lang team. We recommend using the fork which is maintained by the [zkpassport](https://zkpassport.id) team which can be found at: https://github.com/zkpassport/noir_rsa
+
 Optimized Noir library that evaluates RSA signatures.
 
 This library uses <https://github.com/noir-lang/noir-bignum> as a dependency.
